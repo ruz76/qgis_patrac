@@ -28,6 +28,7 @@
 import os
 import shutil
 import csv
+import io
 from PyQt4 import QtGui, uic
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -55,7 +56,23 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.fillTableWidgetDistance("/grass/distancesHill.txt", self.tableWidgetDistancesHill)
         self.fillTableWidgetDistance("/grass/distancesUK.txt", self.tableWidgetDistancesUK)
         self.fillTableWidgetDistance("/grass/distancesUser.txt", self.tableWidgetDistancesUser)
+        self.fillTableWidgetUnits("/grass/units.txt", self.tableWidgetUnits)
         self.buttonBox.accepted.connect(self.accept)
+
+    def fillTableWidgetUnits(self, fileName, tableWidget):
+        tableWidget.setHorizontalHeaderLabels([u"Počet", u"Poznámka"])
+        tableWidget.setVerticalHeaderLabels([u"Pes", u"Člověk do rojnice", u"Kůň", u"Čtyřkolka", u"Vrtulník", u"Potápěč", u"Jiné"])
+        tableWidget.setColumnWidth(1, 600);
+        with open(self.pluginPath + fileName, "rb") as fileInput:
+            i=0
+            for row in csv.reader(fileInput, delimiter=';'):
+                j=0
+                unicode_row = [x.decode('utf8') for x in row]
+                #yield row.encode('utf-8')
+                for field in unicode_row:
+                    tableWidget.setItem(i, j, QtGui.QTableWidgetItem(field))
+                    j=j+1
+                i=i+1
 
     def fillTableWidgetDistance(self, fileName, tableWidget):
         tableWidget.setHorizontalHeaderLabels(['10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '95%'])
@@ -82,6 +99,19 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                     f.write("," + value)
             f.write("\n")
         f.close()
+        f = io.open(self.pluginPath + '/grass/units.txt', 'w', encoding='utf-8')
+        for i in range(0, 7):
+            for j in range(0, 2):
+                value = self.tableWidgetUnits.item(i, j).text()
+                if value == '':
+                    value = '0'
+                unicode_value = self.get_unicode(value)
+                if j == 0:
+                    f.write(unicode_value)
+                else:
+                    f.write(u";" + unicode_value)
+            f.write(u"\n")
+        f.close()
         if self.comboBoxDistance.currentIndex() == 0:
             shutil.copy (self.pluginPath + "/grass/distancesLSOM.txt", self.pluginPath + "/grass/distances.txt")
 
@@ -94,3 +124,22 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         if self.comboBoxDistance.currentIndex() == 3:
             shutil.copy (self.pluginPath + "/grass/distancesUser.txt", self.pluginPath + "/grass/distances.txt")
 
+
+    def if_number_get_string(self, number):
+        converted_str = number
+        if isinstance(number, int) or \
+                isinstance(number, float):
+            converted_str = str(number)
+        return converted_str
+
+    def get_unicode(self, strOrUnicode, encoding='utf-8'):
+        strOrUnicode = self.if_number_get_string(strOrUnicode)
+        if isinstance(strOrUnicode, unicode):
+            return strOrUnicode
+        return unicode(strOrUnicode, encoding, errors='ignore')
+
+    def get_string(self, strOrUnicode, encoding='utf-8'):
+        strOrUnicode = self.if_number_get_string(strOrUnicode)
+        if isinstance(strOrUnicode, unicode):
+            return strOrUnicode.encode(encoding)
+        return strOrUnicode

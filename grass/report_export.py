@@ -7,6 +7,7 @@ import subprocess
 import math
 import webbrowser
 import io
+import csv
 
 #Jen test zda to bezi
 #f = open('/tmp/test.txt', 'w')
@@ -106,6 +107,11 @@ PLUGIN_PATH=str(sys.argv[2])
 COUNT=int(sys.argv[3])
 print "COUNT: " + str(COUNT)
 print gscript.read_command('v.import', input=DATAPATH + '/pracovni/sektory_group_selected.shp', layer='sektory_group_selected', output='sektory_group_selected_modified', overwrite=True)
+
+SUM_POCET_KPT = 0
+SUM_POCET_PT = 0
+SUM_POCET_VPT = 0
+SUM_POCET_PT_ALT = 0
 
 header = io.open(DATAPATH + '/pracovni/report_header.html', encoding='utf-8', mode='r').read()
 f = io.open(DATAPATH + '/pracovni/report.html', encoding='utf-8', mode='w')
@@ -267,12 +273,54 @@ for i in xrange(1, COUNT+1):
         POCET_VPT = 1 #jeden tym pro vodni plochu
 
     f.write(u"\n<h3>Nasazení</h3>\n");
-    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_KPT)) + u" Kynologických pátracích týmů (KPT)</p>\n");
-    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_PT)) + u" Pátracích týmů (PT)</p>\n");
-    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_VPT)) + u" Vodních pátrcích týmů (VPT)</p>\n");
+    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_KPT)) + u" Kynologických pátracích týmů (KPT) k propátraní do 3 hodin</p>\n");
+    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_PT)) + u" Pátracích týmů (PT) s dvaceti členy k propátraní do 3 hodin</p>\n");
+    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_VPT)) + u" Vodních pátracích týmů (VPT) k propátraní do 3 hodin</p>\n");
     f.write(u"<p>Je možné nahradit " + str(math.ceil(POCET_KPT_ALT)) + u" KPT " + str(math.ceil(POCET_PT_ALT)) + u" PT</p>\n");
 
+    SUM_POCET_KPT += math.ceil(POCET_KPT)
+    SUM_POCET_PT += math.ceil(POCET_PT)
+    SUM_POCET_VPT += math.ceil(POCET_VPT)
+    SUM_POCET_PT_ALT += math.ceil(POCET_KPT_ALT)
+
 print gscript.read_command('r.mask', flags="r")
+
+f.write(u"<hr/>\n")
+f.write(u"\n<h2>Doba pro hledání</h2>\n");
+f.write(u"\n<p>Pro prohledání se počítá 3 hodiny jedním týmem</p>\n");
+
+with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
+    i=0
+    for row in csv.reader(fileInput, delimiter=';'):
+        j=0
+        unicode_row = [x.decode('utf8') for x in row]
+        for field in unicode_row:
+            if j == 0:
+                cur_count = int(field)
+                j=j+1
+                if i == 0: #Pes
+                    if cur_count <> 0:
+                        cur_pomer = float(SUM_POCET_KPT) / float(cur_count)
+                        f.write(u"\n<p>K dispozici je " + str(cur_count) + u" KPT</p>\n");
+                        f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+                    else:
+                        f.write(u"\n<p>K dispozici není žádný KPT. Je nutné využít náhradu.</p>\n");
+                if i == 1: #Rojnice
+                    if cur_count <> 0:
+                        cur_pomer = float(SUM_POCET_PT) / (float(cur_count) / float(20))
+                        f.write(u"\n<p>K dispozici je " + str(cur_count) + u" lidí pro PT</p>\n");
+                        f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+                        #TODO Dořešit SUM_POCET_PT_ALT
+                    else:
+                        f.write(u"\n<p>K dispozici není žádný člověk pro PT. Je nutné nějaké zajistit.</p>\n");
+                if i == 5: #Potápěč
+                    if cur_count <> 0:
+                        cur_pomer = float(SUM_POCET_VPT) / (float(cur_count) / float(2))
+                        f.write(u"\n<p>K dispozici je " + str(cur_count) + u" potápěčů pro VPT</p>\n");
+                        f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+                    else:
+                        f.write(u"\n<p>K dispozici není žádný potápěč. Je nutné nějaké zajistit.</p>\n");
+        i=i+1
 
 footer = io.open(DATAPATH + '/pracovni/report_footer.html', encoding='utf-8', mode='r').read()
 f.write(footer)

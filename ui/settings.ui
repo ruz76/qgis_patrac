@@ -39,7 +39,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>3</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -318,6 +318,36 @@
     <attribute name="title">
      <string>Tření</string>
     </attribute>
+   </widget>
+   <widget class="QWidget" name="tab_Units">
+    <attribute name="title">
+     <string>Pátrači</string>
+    </attribute>
+    <widget class="QTableWidget" name="tableWidgetUnits">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>10</y>
+       <width>871</width>
+       <height>381</height>
+      </rect>
+     </property>
+     <property name="rowCount">
+      <number>7</number>
+     </property>
+     <property name="columnCount">
+      <number>2</number>
+     </property>
+     <row/>
+     <row/>
+     <row/>
+     <row/>
+     <row/>
+     <row/>
+     <row/>
+     <column/>
+     <column/>
+    </widget>
    </widget>
   </widget>
  </widget>
