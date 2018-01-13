@@ -23,6 +23,7 @@
 # to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 # MA 02111-1307, USA.
 #
+# The sliders and layer transparency are based on https://github.com/alexbruy/raster-transparency
 #******************************************************************************
 
 
@@ -36,6 +37,7 @@ from ui.ui_patracdockwidgetbase import Ui_PatracDockWidget
 from ui.ui_settings import Ui_Settings
 from ui.ui_gpx import Ui_Gpx
 from ui.ui_message import Ui_Message
+from ui.ui_coords import Ui_Coords
 
 import os
 import sys
@@ -45,6 +47,8 @@ from glob import glob
 #from osgeo import gdal
 import time
 import urllib2
+import math
+from datetime import datetime
 
 class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def __init__(self, plugin):
@@ -66,16 +70,15 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.sliderEnd.valueChanged.connect(self.__updateSpinEnd)
         self.spinEnd.valueChanged.connect(self.__updateSliderEnd)
 
-        self.btnGetSectors.clicked.connect(self.getSectors)
-        self.btnRecalculateSectors.clicked.connect(self.recalculateSectors)
-        self.btnExportSectors.clicked.connect(self.exportSectors)
-        self.btnShowSettings.clicked.connect(self.showSettings)
-        self.btnImportGpx.clicked.connect(self.showImportGpx)
-        self.btnShowPeople.clicked.connect(self.showPeople)
-        self.btnShowMessage.clicked.connect(self.showMessage)
+        self.tbtnDefinePlaces.clicked.connect(self.definePlaces)
+        self.tbtnGetSectors.clicked.connect(self.getSectors)
+        self.tbtnRecalculateSectors.clicked.connect(self.recalculateSectors)
+        self.tbtnExportSectors.clicked.connect(self.exportSectors)
+        self.tbtnShowSettings.clicked.connect(self.showSettings)
+        self.tbtnImportPaths.clicked.connect(self.showImportGpx)
+        self.tbtnShowSearchers.clicked.connect(self.showPeople)
+        self.tbtnShowMessage.clicked.connect(self.showMessage)
 
-        settings = QSettings("alexbruy", "Patrac")
-        self.chkManualUpdate.setChecked(bool(settings.value("manualUpdate", False)))
         userPluginPath = QFileInfo(QgsApplication.qgisUserDbFilePath()).path() + "/python/plugins/qgis_patrac"
         systemPluginPath = QgsApplication.prefixPath() + "/python/plugins/qgis_patrac"
         if QFileInfo(userPluginPath).exists():
@@ -84,6 +87,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             self.pluginPath = systemPluginPath
 
         self.settingsdlg = Ui_Settings(self.pluginPath)
+        center = self.plugin.canvas.center()        
+        self.coordsdlg = Ui_Coords(center)        
+              
         ##self.importgpxdlg.buttonBox.accepted.connect(self.importgpxdlg.accept)
 
     def updatePatrac(self):
@@ -212,29 +218,46 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             QMessageBox.information(None, "INFO:", u"Nebyla nalezena vrstva s místy. Nemohu určit oblast.")
             self.setCursor(Qt.ArrowCursor)
             return
+
+        featuresCount = 0
+        for feature in layer.getFeatures():
+            featuresCount += 1
+
+        pointid = 0
+        if featuresCount > 1:
+            radial = self.getRadial()
+            self.generateRadialOnPoint(radial[1], layer)
+            pointid = radial[1]
+            self.writeAzimuthReclass(radial[0], 30, 100);
+        else:
+            self.generateRadialOnPoint(0, layer)
+            self.writeAzimuthReclass(0, 0, 0);
+                        
         #layer = self.plugin.iface.activeLayer()
         i = 0
         distances_costed_cum = ""
         for feature in layer.getFeatures():
-            geom = feature.geometry()
-            x = geom.asPoint()            
-            coords = str(x)[1:-1]
-            f_coords = open(self.pluginPath + '/grass/coords.txt', 'w')
-            f_coords.write(coords)
-            f_coords.close()    
-            print '*******Coords: ' + coords
-            if sys.platform.startswith('win'):
-                p = subprocess.Popen((self.pluginPath + "/grass/run_cost_distance.bat", DATAPATH, self.pluginPath, str(i), str(self.comboPerson.currentIndex()+1)))
-                p.wait()
-                #os.system(self.pluginPath + "/grass/run_cost_distance.bat " + DATAPATH + " " + self.pluginPath + " " + str(i) + " " + str(self.comboPerson.currentIndex()+1))
-            else:
-                p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_cost_distance.sh", DATAPATH, self.pluginPath, str(i), str(self.comboPerson.currentIndex()+1)))
-                p.wait()
-                #os.system("bash " + self.pluginPath + "/grass/run_cost_distance.sh " + DATAPATH + " " + self.pluginPath + " " + str(i) + " " + str(self.comboPerson.currentIndex()+1))
-            if (i == 0):
-                distances_costed_cum = "distances0_costed"
-            else:
-                distances_costed_cum = distances_costed_cum + ",distances" + str(i) + "_costed"
+            if i == pointid:
+                geom = feature.geometry()
+                x = geom.asPoint()            
+                coords = str(x)[1:-1]
+                f_coords = open(self.pluginPath + '/grass/coords.txt', 'w')
+                f_coords.write(coords)
+                f_coords.close()    
+                print '*******Coords: ' + coords
+                if sys.platform.startswith('win'):
+                    p = subprocess.Popen((self.pluginPath + "/grass/run_cost_distance.bat", DATAPATH, self.pluginPath, str(i), str(self.comboPerson.currentIndex()+1)))
+                    p.wait()
+                    #os.system(self.pluginPath + "/grass/run_cost_distance.bat " + DATAPATH + " " + self.pluginPath + " " + str(i) + " " + str(self.comboPerson.currentIndex()+1))
+                else:
+                    p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_cost_distance.sh", DATAPATH, self.pluginPath, str(i), str(self.comboPerson.currentIndex()+1)))
+                    p.wait()
+                    #os.system("bash " + self.pluginPath + "/grass/run_cost_distance.sh " + DATAPATH + " " + self.pluginPath + " " + str(i) + " " + str(self.comboPerson.currentIndex()+1))
+                #if (i == 0):
+                    #distances_costed_cum = "distances0_costed"
+                #else:
+                    #distances_costed_cum = distances_costed_cum + ",distances" + str(i) + "_costed"
+                distances_costed_cum = "distances" + str(i) + "_costed"
             i += 1
         #Windows - nutno nejdrive smazat tif
         #driver = gdal.GetDriverByName('GTiff')
@@ -348,7 +371,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 print "Sector " + feature['label'] + "failed to load!"
             else:
                 crs = QgsCoordinateReferenceSystem("EPSG:4326")
-                QgsVectorFileWriter.writeAsVectorFormat(sector, DATAPATH + "/sektory/gpx/" + feature['label'] + ".gpx","utf-8", crs, "GPX", datasourceOptions=['GPX_USE_EXTENSIONS=YES','GPX_FORCE_TRACK-YES'])
+                QgsVectorFileWriter.writeAsVectorFormat(sector, DATAPATH + "/sektory/gpx/" + feature['label'] + ".gpx","utf-8", crs, "GPX", datasourceOptions=['GPX_USE_EXTENSIONS=YES','GPX_FORCE_TRACK=YES'])
                 QgsMapLayerRegistry.instance().addMapLayer(sector)
         self.setCursor(Qt.ArrowCursor)
         return
@@ -398,6 +421,116 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 ##            crs = QgsCoordinateReferenceSystem("EPSG:4326")
             QgsMapLayerRegistry.instance().addMapLayer(vector)  
 
+    def definePlaces(self):        
+        self.coordsdlg.setWidget(self)
+        #self.coordsdlg.setLayer(layer)
+        self.coordsdlg.setModal(True)      
+        self.coordsdlg.exec_()
+        x = None
+        y = None 
+        if self.coordsdlg.radioButtonJTSK.isChecked() == True:
+            x = self.coordsdlg.lineEditX.text()
+            y = self.coordsdlg.lineEditY.text()
+        else:
+            x = self.coordsdlg.lineEditLon.text()
+            y = self.coordsdlg.lineEditLat.text()
+            source_crs = QgsCoordinateReferenceSystem(4326)
+            dest_crs = QgsCoordinateReferenceSystem(5514)
+            transform = QgsCoordinateTransform(source_crs, dest_crs)
+            xyJTSK = transform.transform(float(x), float(y))
+            x = xyJTSK.x()
+            y = xyJTSK.y()
+        
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath() 
+        layer=None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if lyr.source() == DATAPATH + "/pracovni/mista.shp":
+                layer = lyr
+                break
+        #provider = layer.dataProvider()   
+        features = layer.selectedFeatures()
+        #provider.getFeatures()
+        layer.startEditing()
+        for fet in features:
+            geom = fet.geometry()
+            pt = geom.asPoint()   
+            print str(pt)
+            fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(float(x),float(y))))
+            layer.updateFeature(fet)
+        layer.commitChanges()
+        layer.triggerRepaint()
+
+        if self.coordsdlg.checkBoxLine.isChecked() == True:
+            self.convertLinesToPoints()
+                
+        if self.coordsdlg.checkBoxPolygon.isChecked() == True:
+            self.convertPolygonsToPoints()
+    
+    def convertLinesToPoints(self):
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath() 
+        layerPoint=None
+        layerLine=None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if lyr.source() == DATAPATH + "/pracovni/mista_linie.shp":
+                layerLine = lyr
+            if lyr.source() == DATAPATH + "/pracovni/mista.shp":
+                layerPoint = lyr
+        providerLine = layerLine.dataProvider()
+        providerPoint = layerPoint.dataProvider()   
+        #features = layer.selectedFeatures()
+        features = providerLine.getFeatures()
+        for fet in features:
+            fetPoint = QgsFeature()
+            fetPoint.setGeometry(fet.geometry().centroid())
+            featureid = fet["id"] + 1000
+            fetPoint.setAttributes([featureid, fet["cas_od"], fet["cas_do"]])
+            providerPoint.addFeatures([fetPoint])
+        layerPoint.commitChanges()
+        layerPoint.triggerRepaint()
+
+    def convertPolygonsToPoints(self):
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath() 
+        layerPoint=None
+        layerPolygon=None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if lyr.source() == DATAPATH + "/pracovni/mista_polygon.shp":
+                layerPolygon = lyr
+            if lyr.source() == DATAPATH + "/pracovni/mista.shp":
+                layerPoint = lyr
+        providerPolygon = layerPolygon.dataProvider()
+        providerPoint = layerPoint.dataProvider()   
+        #features = layer.selectedFeatures()
+        features = providerPolygon.getFeatures()
+        for fet in features:
+            fetPoint = QgsFeature()
+            fetPoint.setGeometry(fet.geometry().centroid())
+            featureid = fet["id"] + 2000
+            fetPoint.setAttributes([featureid, fet["cas_od"], fet["cas_do"]])
+            providerPoint.addFeatures([fetPoint])
+        layerPoint.commitChanges()
+        layerPoint.triggerRepaint()
+
+    #Toto nefunguje
+    def movePointJTSK(self, x, y):
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath() 
+        layer=None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if lyr.source() == DATAPATH + "/pracovni/mista.shp":
+                layer = lyr
+                break
+        provider = layer.dataProvider()   
+        features = provider.getFeatures()
+        layer.startEditing()
+        for fet in features:
+            geom = fet.geometry()
+            pt = geom.asPoint()   
+            print str(pt)
+            print str(x) + " " + str(y)	
+
     def showPeople(self):
         self.setCursor(Qt.WaitCursor)
         prjfi = QFileInfo(QgsProject.instance().fileName())
@@ -426,4 +559,194 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layer.commitChanges()
         layer.triggerRepaint()
         self.setCursor(Qt.ArrowCursor)
+
+    def azimuth(self, point1, point2):
+        '''azimuth between 2 QGIS points ->must be adapted to 0-360°'''
+        angle = math.atan2(point2.x() - point1.x(), point2.y() - point1.y())
+        angle = math.degrees(angle)
+        if angle < 0:
+            angle = 360 + angle
+        return angle   
+
+    def avg_time(self, datetimes):
+        total = sum(dt.hour * 3600 + dt.minute * 60 + dt.second for dt in datetimes)
+        avg = total / len(datetimes)
+        minutes, seconds = divmod(int(avg), 60)
+        hours, minutes = divmod(minutes, 60)
+        return datetime.combine(date(1900, 1, 1), time(hours, minutes, seconds)) 
+    
+    def getRadial(self):
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath() 
+        layer=None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if lyr.source() == DATAPATH + "/pracovni/mista.shp":
+                layer = lyr
+                break
+        if layer==None:
+            QMessageBox.information(None, "INFO:", u"Nebyla nalezena vrstva s místy. Nemohu určit oblast.")
+            self.setCursor(Qt.ArrowCursor)
+            return
+        i = 0
+        cas_datetime_max1 = datetime.strptime("1970-01-01 00:01", '%Y-%m-%d %H:%M')
+        id_max1 = 0
+        cas_datetime_max2 = datetime.strptime("1970-01-01 00:01", '%Y-%m-%d %H:%M')
+        id_max2 = 0   
+        from_geom = None
+        to_geom = None
+        for feature in layer.getFeatures():
+            #TODO udělat průměr časů
+            cas_od = feature["cas_od"]
+            cas_od_datetime = datetime.strptime(cas_od, '%Y-%m-%d %H:%M')
+            cas_do = feature["cas_do"]
+            cas_do_datetime = datetime.strptime(cas_do, '%Y-%m-%d %H:%M')
+            cas_datetime = self.avg_time([cas_od_datetime, cas_do_datetime])
+            if cas_datetime > cas_datetime_max2:
+                cas_datetime_max1 = cas_datetime_max2
+                cas_datetime_max2 = cas_datetime
+                id_max1 = id_max2
+                id_max2 = i
+                from_geom = to_geom
+                geom = feature.geometry()
+                to_geom = geom.asPoint()
+            else:
+                if cas_datetime > cas_datetime_max1:
+                    cas_datetime_max1 = cas_datetime
+                    id_max1 = i
+                    geom = feature.geometry()
+                    from_geom = geom.asPoint()
+            i += 1
+        azimuth = self.azimuth(from_geom, to_geom)                        
+        print str(azimuth)
+        print str(cas_datetime_max1) + " " + str(id_max1)
+        print str(cas_datetime_max2) + " " + str(id_max2)
+        cas_diff = cas_datetime_max2 - cas_datetime_max1
+        cas_diff_seconds = cas_diff.total_seconds()
+        print str(cas_diff_seconds)
+        distance = QgsDistanceArea()
+        distance_m = distance.measureLine(from_geom, to_geom)
+        print str(distance_m)
+        speed_m_s = distance_m / cas_diff_seconds
+        print str(speed_m_s)
+        return [azimuth, id_max2, speed_m_s]
+        
+    def getRadialAlpha(self, i, KVADRANT):
+        alpha = (math.pi / float(2)) - ((math.pi / float(180)) * i)
+        if KVADRANT == 2:
+            alpha = ((math.pi / float(180)) * i) - (math.pi / float(2))
+        if KVADRANT == 3:
+            alpha = (3 * (math.pi / float(2))) - ((math.pi / float(180)) * i)
+        if KVADRANT == 4:
+            alpha = ((math.pi / float(180)) * i) - (3 * (math.pi / float(2)))
+        return alpha
+            
+    def getRadialTriangleX(self, alpha, CENTERX, xdir, RADIUS):
+        dx = xdir * math.cos(alpha) * RADIUS
+        x = CENTERX + dx
+        return x
+        
+    def getRadialTriangleY(self, alpha, CENTERY, ydir, RADIUS):
+        dy = ydir * math.sin(alpha) * RADIUS
+        y = CENTERY + dy
+        return y
+
+    def generateRadialOnPoint(self, pointid, layer):
+        i = 0
+        for feature in layer.getFeatures():
+            if i == pointid:
+                geom = feature.geometry()
+                x = geom.asPoint()            
+                coords = str(x)[1:-1]
+                coords_splitted = coords.split(',')
+                CENTERX = float(coords_splitted[0])
+                CENTERY = float(coords_splitted[1])
+                RADIUS = 20000;     
+                csv = open(self.pluginPath + "/grass/radial.csv", "w")
+                csv.write("id;wkt\n")
+                self.generateRadial(CENTERX, CENTERY, RADIUS, 1, csv)
+                self.generateRadial(CENTERX, CENTERY, RADIUS, 2, csv)
+                self.generateRadial(CENTERX, CENTERY, RADIUS, 3, csv)
+                self.generateRadial(CENTERX, CENTERY, RADIUS, 4, csv)
+                csv.close() 
+            i += 1
+
+    def generateRadial(self, CENTERX, CENTERY, RADIUS, KVADRANT, csv):
+        from_deg = 0
+        to_deg = 90
+        xdir = 1
+        ydir = 1
+        if KVADRANT == 2:
+            from_deg = 90
+            to_deg = 180
+            xdir = 1
+            ydir = -1
+        if KVADRANT == 3:
+            from_deg = 180
+            to_deg = 270
+            xdir = -1
+            ydir = -1
+        if KVADRANT == 4:
+            from_deg = 270
+            to_deg = 360
+            xdir = -1
+            ydir = 1    
+        for i in xrange(from_deg, to_deg):	
+            alpha = self.getRadialAlpha(i, KVADRANT);
+            x = self.getRadialTriangleX(alpha, CENTERX, xdir, RADIUS)
+            y = self.getRadialTriangleY(alpha, CENTERY, ydir, RADIUS)
+            if i == 0:
+                x = CENTERX
+                y = CENTERY + RADIUS    
+            if i == 90:
+                x = CENTERX + RADIUS
+                y = CENTERY
+            if i == 180:
+                x = CENTERX
+                y = CENTERY - RADIUS
+            if i == 270:
+                x = CENTERX - RADIUS
+                y = CENTERY
+            wkt_polygon = "POLYGON((" + str(CENTERX) + " " + str(CENTERY) + ", " + str(x) + " " + str(y) 	
+            alpha = self.getRadialAlpha(i+1, KVADRANT);
+            x = self.getRadialTriangleX(alpha, CENTERX, xdir, RADIUS)
+            y = self.getRadialTriangleY(alpha, CENTERY, ydir, RADIUS)
+            if i == 89:
+                x = CENTERX + RADIUS
+                y = CENTERY
+            if i == 179:
+                x = CENTERX
+                y = CENTERY - RADIUS
+            if i == 269:
+                x = CENTERX - RADIUS
+                y = CENTERY
+            if i == 359:
+                x = CENTERX
+                y = CENTERY + RADIUS
+            wkt_polygon = wkt_polygon + ", " + str(x) + " " + str(y) + ", " + str(CENTERX) + " " + str(CENTERY) + "))"
+            csv.write(str(i) + ";" + wkt_polygon + "\n")
+
+    def writeAzimuthReclass(self, azimuth, tolerance, friction):
+        reclass = open(self.pluginPath + "/grass/azimuth_reclass.rules", "w")
+        tolerance_half = tolerance / 2
+        astart = int(azimuth) - tolerance_half
+        aend = int(azimuth) + tolerance_half
+        if astart < 0:
+            astart = 360 + astart
+            reclass.write(str(astart) + " thru 360 = 0\n")
+            reclass.write("0 thru " + str(aend) + " = 0\n")
+            reclass.write("* = " + str(friction) + "\n")
+            reclass.write("end\n")
+        else:
+            if aend > 360:
+                aend = aend - 360
+                reclass.write(str(astart) + " thru 360 = 0\n")
+                reclass.write("0 thru " + str(aend) + " = 0\n")
+                reclass.write("* = " + str(friction) + "\n")
+                reclass.write("end\n")
+            else:
+                reclass.write(str(astart) + " thru " + str(aend) + "= 0\n")
+                reclass.write("* = " + str(friction) + "\n")
+                reclass.write("end\n")
+        #reclass.write(str(azimuth) + " " + str(tolerance) + " " + str(friction) + "\n")
+        reclass.close() 
       

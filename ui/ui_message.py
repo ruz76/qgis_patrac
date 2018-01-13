@@ -31,7 +31,7 @@ import csv
 from PyQt4 import QtGui, uic
 from PyQt4.QtGui import QFileDialog
 import urllib2
-import requests, json
+#import requests, json
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'message.ui'))
@@ -55,7 +55,7 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         for line in lines:
             if line != "":
                 cols = line.split(";")
-	        self.comboBoxUsers.addItem(cols[0] + " (" + cols[1] + ")")
+	        self.comboBoxUsers.addItem(cols[0])
     
     def showBrowse(self):
         filename1 = QFileDialog.getOpenFileName()
@@ -63,14 +63,9 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
 
     def accept(self):
         filename1 = self.lineEditPath.text()
-        idx = str(self.comboBoxUsers.currentText())
-        cols = idx.split("(")
-        id = cols[1].split(")")[0] 
+        id = str(self.comboBoxUsers.currentText())
         message = self.plainTextEditMessage.toPlainText()
         #data = json.dumps({'message': message, 'id': id, 'operation': 'insertmessage'})
-        if (filename1 != ""):
-            with open(filename1, 'rb') as f: r = requests.post('http://158.196.143.122/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage'}, files={'fileToUpload': f})
-        else:
-            r = requests.post('http://158.196.143.122/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage'})
-        print r.text
+        #with open(filename1, 'rb') as f: r = requests.post('http://158.196.143.122/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage'}, files={'fileToUpload': f})
+        #print r.text
 

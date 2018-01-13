@@ -30,12 +30,14 @@ import shutil
 import csv
 import io
 from PyQt4 import QtGui, uic
+from qgis.core import *
+from qgis.gui import *
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'coords.ui'))
 
 class Ui_Coords(QtGui.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self, center, parent=None):
         """Constructor."""
         super(Ui_Coords, self).__init__(parent)
         # Set up the user interface from Designer.
@@ -46,10 +48,42 @@ class Ui_Coords(QtGui.QDialog, FORM_CLASS):
         #self.init_param()
         self.setupUi(self)
         self.layer = None
+        self.center = center
+        self.widget = None
+        self.lineEditX.setText(str(center.x()))
+        self.lineEditY.setText(str(center.y()))
+        source_crs = QgsCoordinateReferenceSystem(5514)
+        dest_crs = QgsCoordinateReferenceSystem(4326)
+        transform = QgsCoordinateTransform(source_crs, dest_crs)
+        xyWGS = transform.transform(center.x(), center.y())
+        self.lineEditLon.setText(str(xyWGS.x()))
+        self.lineEditLat.setText(str(xyWGS.y()))
         self.buttonBox.accepted.connect(self.accept)
 
     def setLayer(self, layer):
         self.layer = layer
 
+    def setWidget(self, widget):
+        self.widget = widget
+    
+    def setCenter(self, center):
+        self.center = center
+
+    #Toto taky nefungovalo, takže jinak, stále to ale nechápu
     def accept(self):
-        print "AAA"
+        #self.widget.movePointJTSK(float(self.lineEditX.text()),float(self.lineEditY.text()))
+        self.close()
+
+    def acceptNefuncki(self):
+        #vraci  objektu misto jednoho a nedela editaci - nechapu, asi nejaka dvojita reference
+        provider = self.layer.dataProvider()   
+        features = provider.getFeatures()
+        self.layer.startEditing()
+        for fet in features:
+            print self.lineEditX.text() + " " + self.lineEditY.text()
+            geom = fet.geometry()
+            pt = geom.asPoint()   
+            print str(pt)
+            fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(float(self.lineEditX.text()),float(self.lineEditY.text()))))
+            self.layer.commitChanges()
+        self.layer.triggerRepaint()
