@@ -30,7 +30,9 @@ import shutil
 import csv
 from PyQt4 import QtGui, uic
 from PyQt4.QtGui import QFileDialog
+from PyQt4.QtGui import QMessageBox
 import urllib2
+import socket
 #import requests, json
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -49,13 +51,21 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.pluginPath = pluginPath
         self.browseButton.clicked.connect(self.showBrowse)
-        response = urllib2.urlopen('http://158.196.143.122/patrac/mserver.php?operation=getlocations')
-        locations = response.read()
-        lines = locations.split("\n")
-        for line in lines:
-            if line != "":
-                cols = line.split(";")
-	        self.comboBoxUsers.addItem(cols[0])
+        response = None
+        try:
+            response = urllib2.urlopen('http://158.196.143.122/patrac/mserver.php?operation=getlocations', None, 5)
+            locations = response.read()
+            lines = locations.split("\n")
+            for line in lines:
+                if line != "":
+                    cols = line.split(";")
+    	        self.comboBoxUsers.addItem(cols[0])
+        except urllib2.URLError, e:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            self.close()
+        except socket.timeout:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            self.close()
     
     def showBrowse(self):
         filename1 = QFileDialog.getOpenFileName()

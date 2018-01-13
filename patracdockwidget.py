@@ -48,6 +48,7 @@ from glob import glob
 import time
 import urllib2
 import math
+import socket
 from datetime import datetime
 
 class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
@@ -398,8 +399,10 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.settingsdlg.show()
 
     def showMessage(self):
+        self.setCursor(Qt.WaitCursor)
         self.messagedlg = Ui_Message(self.pluginPath)	
         self.messagedlg.show()
+        self.setCursor(Qt.ArrowCursor)
 
     def showImportGpx(self):
         self.importgpxdlg = Ui_Gpx(self.pluginPath)
@@ -546,18 +549,24 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layer.startEditing()
         listOfIds = [feat.id() for feat in layer.getFeatures()]
         layer.deleteFeatures( listOfIds )
-        response = urllib2.urlopen('http://158.196.143.122/patrac/mserver.php?operation=getlocations')
-        locations = response.read()
-        lines = locations.split("\n")
-        for line in lines:
-            if line != "": # add other needed checks to skip titles
-                cols = line.split(";")
-                fet = QgsFeature()
-                fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(float(cols[2]),float(cols[1]))))
-                fet.setAttributes([cols[0]])
-                provider.addFeatures([fet])
-        layer.commitChanges()
-        layer.triggerRepaint()
+        response = None
+        try:
+            response = urllib2.urlopen('http://158.196.143.122/patrac/mserver.php?operation=getlocations', None, 5)
+            locations = response.read()
+            lines = locations.split("\n")
+            for line in lines:
+                if line != "": # add other needed checks to skip titles
+                    cols = line.split(";")
+                    fet = QgsFeature()
+                    fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(float(cols[2]),float(cols[1]))))
+                    fet.setAttributes([cols[0]])
+                    provider.addFeatures([fet])
+            layer.commitChanges()
+            layer.triggerRepaint()
+        except urllib2.URLError, e:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+        except socket.timeout:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
         self.setCursor(Qt.ArrowCursor)
 
     def azimuth(self, point1, point2):
