@@ -88,8 +88,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             self.pluginPath = systemPluginPath
 
         self.settingsdlg = Ui_Settings(self.pluginPath)
-        center = self.plugin.canvas.center()        
-        self.coordsdlg = Ui_Coords(center)        
+        self.coordsdlg = Ui_Coords()
               
         ##self.importgpxdlg.buttonBox.accepted.connect(self.importgpxdlg.accept)
 
@@ -424,7 +423,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 ##            crs = QgsCoordinateReferenceSystem("EPSG:4326")
             QgsMapLayerRegistry.instance().addMapLayer(vector)  
 
-    def definePlaces(self):        
+    def definePlaces(self):
+        center = self.plugin.canvas.center()
+        self.coordsdlg.setCenter(center)
         self.coordsdlg.setWidget(self)
         #self.coordsdlg.setLayer(layer)
         self.coordsdlg.setModal(True)      
@@ -578,12 +579,16 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         return angle   
 
     def avg_time(self, datetimes):
-        total = sum(dt.hour * 3600 + dt.minute * 60 + dt.second for dt in datetimes)
-        avg = total / len(datetimes)
-        minutes, seconds = divmod(int(avg), 60)
-        hours, minutes = divmod(minutes, 60)
-        return datetime.combine(date(1900, 1, 1), time(hours, minutes, seconds)) 
-    
+        return datetimes[0]
+        #Problem s TypeError: 'module' object is not callable
+        #total = sum(dt.hour * 3600 + dt.minute * 60 + dt.second for dt in datetimes)
+        #avg = total / len(datetimes)
+        #minutes, seconds = divmod(int(avg), 60)
+        #hours, minutes = divmod(minutes, 60)
+        #combined = datetime(1900,1,1, hours, minutes, seconds)
+        # combined = datetime.combine(datetime(1900, 1, 1), time(hours, minutes, seconds))
+        #return combined
+
     def getRadial(self):
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath() 

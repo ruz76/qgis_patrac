@@ -126,9 +126,6 @@ for i in xrange(1, COUNT+1):
     #ziskani atributu plocha a label
     VALUES=gscript.read_command('v.db.select', map='sektory_group_selected_modified_' + str(i), columns='label,area_ha', flags="c")
     VALUESITEMS=VALUES.split('|')
-    #export do SHP s nazvem dle atributu label
-    #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/', output_layer=str(VALUESITEMS[0]), output_type='line' overwrite=True)
-    print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/'+str(VALUESITEMS[0])+'.shp', output_layer=str(VALUESITEMS[0]), output_type='line', overwrite=True)
 
     #zamaskovani rastru s vyuzitim polygonu sektoru
     print gscript.read_command('r.mask', vector='sektory_group_selected_modified', where="cat='"+str(i)+"'", overwrite=True)
@@ -278,6 +275,13 @@ for i in xrange(1, COUNT+1):
     f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_VPT)) + u" Vodních pátracích týmů (VPT) k propátraní do 3 hodin</p>\n");
     f.write(u"<p>Je možné nahradit " + str(math.ceil(POCET_KPT_ALT)) + u" KPT " + str(math.ceil(POCET_PT_ALT)) + u" PT</p>\n");
 
+    #export do SHP s nazvem dle atributu label
+    #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/', output_layer=str(VALUESITEMS[0]), output_type='line' overwrite=True)
+    print gscript.read_command('v.db.addcolumn', map='sektory_group_selected_modified_' + str(i), columns='report varchar(255)')
+    print gscript.read_command('v.db.update', map='sektory_group_selected_modified_' + str(i), layer='1', column='report', value='KPT=' + str(math.ceil(POCET_KPT)) + ', PT='+ str(math.ceil(POCET_PT)) + ', VPT=' + str(math.ceil(POCET_VPT)) + ', APT=' + str(math.ceil(POCET_PT_ALT)))
+    print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/'+str(VALUESITEMS[0])+'.shp', output_layer=str(VALUESITEMS[0]), output_type='line', overwrite=True)
+
+
     SUM_POCET_KPT += math.ceil(POCET_KPT)
     SUM_POCET_PT += math.ceil(POCET_PT)
     SUM_POCET_VPT += math.ceil(POCET_VPT)
@@ -299,14 +303,14 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
                 cur_count = int(field)
                 j=j+1
                 if i == 0: #Pes
-                    if cur_count <> 0:
+                    if cur_count != 0:
                         cur_pomer = float(SUM_POCET_KPT) / float(cur_count)
                         f.write(u"\n<p>K dispozici je " + str(cur_count) + u" KPT</p>\n");
                         f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
                     else:
                         f.write(u"\n<p>K dispozici není žádný KPT. Je nutné využít náhradu.</p>\n");
                 if i == 1: #Rojnice
-                    if cur_count <> 0:
+                    if cur_count != 0:
                         cur_pomer = float(SUM_POCET_PT) / (float(cur_count) / float(20))
                         f.write(u"\n<p>K dispozici je " + str(cur_count) + u" lidí pro PT</p>\n");
                         f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
@@ -314,7 +318,7 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
                     else:
                         f.write(u"\n<p>K dispozici není žádný člověk pro PT. Je nutné nějaké zajistit.</p>\n");
                 if i == 5: #Potápěč
-                    if cur_count <> 0:
+                    if cur_count != 0:
                         cur_pomer = float(SUM_POCET_VPT) / (float(cur_count) / float(2))
                         f.write(u"\n<p>K dispozici je " + str(cur_count) + u" potápěčů pro VPT</p>\n");
                         f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");

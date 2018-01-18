@@ -37,7 +37,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'coords.ui'))
 
 class Ui_Coords(QtGui.QDialog, FORM_CLASS):
-    def __init__(self, center, parent=None):
+    def __init__(self, parent=None):
         """Constructor."""
         super(Ui_Coords, self).__init__(parent)
         # Set up the user interface from Designer.
@@ -48,16 +48,8 @@ class Ui_Coords(QtGui.QDialog, FORM_CLASS):
         #self.init_param()
         self.setupUi(self)
         self.layer = None
-        self.center = center
+        self.center = None
         self.widget = None
-        self.lineEditX.setText(str(center.x()))
-        self.lineEditY.setText(str(center.y()))
-        source_crs = QgsCoordinateReferenceSystem(5514)
-        dest_crs = QgsCoordinateReferenceSystem(4326)
-        transform = QgsCoordinateTransform(source_crs, dest_crs)
-        xyWGS = transform.transform(center.x(), center.y())
-        self.lineEditLon.setText(str(xyWGS.x()))
-        self.lineEditLat.setText(str(xyWGS.y()))
         self.buttonBox.accepted.connect(self.accept)
 
     def setLayer(self, layer):
@@ -65,9 +57,20 @@ class Ui_Coords(QtGui.QDialog, FORM_CLASS):
 
     def setWidget(self, widget):
         self.widget = widget
-    
+
+    def setCoords(self):
+        self.lineEditX.setText(str(self.center.x()))
+        self.lineEditY.setText(str(self.center.y()))
+        source_crs = QgsCoordinateReferenceSystem(5514)
+        dest_crs = QgsCoordinateReferenceSystem(4326)
+        transform = QgsCoordinateTransform(source_crs, dest_crs)
+        xyWGS = transform.transform(self.center.x(), self.center.y())
+        self.lineEditLon.setText(str(xyWGS.x()))
+        self.lineEditLat.setText(str(xyWGS.y()))
+
     def setCenter(self, center):
         self.center = center
+        self.setCoords()
 
     #Toto taky nefungovalo, takže jinak, stále to ale nechápu
     def accept(self):

@@ -106,9 +106,8 @@ gsetup.init(gisbase,
 #gscript.message('Current GRASS GIS 7 environment:')
 #print gscript.gisenv()
 
-SECTOR=str(sys.argv[3])
-DATEFROM=str(sys.argv[4])
-DATETO=str(sys.argv[5]) 
+INPUT=str(sys.argv[3])
+SECTOR=str(sys.argv[4])
 
 if not os.path.exists(DATAPATH + '/search/gpx/' + SECTOR):
     os.makedirs(DATAPATH + '/search/gpx/' + SECTOR)

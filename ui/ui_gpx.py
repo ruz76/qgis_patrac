@@ -28,7 +28,9 @@
 import os, sys
 import subprocess
 from glob import glob
+from glob import iglob
 import shutil
+from shutil import copyfile
 import csv
 from PyQt4 import QtGui, uic
 
@@ -37,6 +39,9 @@ from PyQt4.QtGui import *
 
 from qgis.core import *
 from qgis.gui import *
+
+from random import randint
+from datetime import datetime
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'gpx.ui'))
@@ -47,14 +52,19 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         super(Ui_Gpx, self).__init__(parent)
         self.setupUi(self)
         self.pluginPath = pluginPath
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        self.DATAPATH = DATAPATH
+        self.buttonBoxTime.accepted.connect(self.acceptTime)
+        self.buttonBoxAll.accepted.connect(self.acceptAll)
         self.fillTableWidgetSectors("/search/sectors.txt", self.tableWidgetSectors)
+        self.fillListViewTracks()
+        today = datetime.today()
+        self.lineEditName.setText(today.strftime('%d_%H_%M'))
 
     def fillTableWidgetSectors(self, fileName, tableWidget):
         tableWidget.setHorizontalHeaderLabels(['ID', 'Od', 'Do'])
-##        tableWidget.setVerticalHeaderLabels([u"Dítě 1-3", u"Dítě 4-6", u"Dítě 7-12", u"Dítě 13-15", u"Deprese", u"Psychická nemoc", u"Retardovaný", u"Alzheimer", u"Turista", u"Demence"])
-        prjfi = QFileInfo(QgsProject.instance().fileName())
-        DATAPATH = prjfi.absolutePath()
-        with open(DATAPATH + fileName, "rb") as fileInput:
+        with open(self.DATAPATH + fileName, "rb") as fileInput:
             i=0
             for row in csv.reader(fileInput, delimiter=','):    
                 j=0
@@ -63,9 +73,106 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                     tableWidget.setItem(i, j, QtGui.QTableWidgetItem(field))                    
                     j=j+1
                 i=i+1
+        #tableWidget.rowCount = 3
 
-    def accept(self):
-        QgsMessageLog.logMessage("Accept", "A")
+    def fillListViewTracks(self):
+        if os.path.isfile(self.DATAPATH + '/search/temp/list.csv'):
+            os.remove(self.DATAPATH + '/search/temp/list.csv')
+        #for f in glob.iglob('E:/Garmin/GPX/*/*.gpx'):  # generator, search immediate subdirectories
+        i = 0
+        for f in iglob('/media/gpx/Garmin/GPX/*/*.gpx'):
+            #copyfile(f, self.DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
+            shutil.copyfile(f, self.DATAPATH + '/search/gpx/' + os.path.basename(f))
+            shutil.copyfile(f, self.DATAPATH + '/search/temp/' + str(i) + '.gpx')
+            if sys.platform.startswith('win'):
+                p = subprocess.Popen((self.pluginPath + '/xslt/run_xslt_extent.bat', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
+                p.wait()
+            else:
+                QgsMessageLog.logMessage(str(f), "XSLT")
+                p = subprocess.Popen(('bash', self.pluginPath + '/xslt/run_xslt_extent.sh', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
+                p.wait()
+            i=i+1
+
+        self.listViewModel = QStandardItemModel()
+        with open(self.DATAPATH + '/search/temp/list.csv') as fp:
+            for cnt, line in enumerate(fp):
+                track = u'Track ' + str(cnt) + u' Začátek: '
+                items = line.split(';')
+                if len(items[0]) > 30:
+                    items2 = items[0].split(' ')
+                    track+= items2[0]
+                    items2 = items[1].split(' ')
+                    track += u' Konec: ' + items2[0]
+                else:
+                    track += items[0]
+                    track += u' Konec: ' + items[1]
+                item = QStandardItem(track)
+                #check = Qt.Checked if randint(0, 1) == 1 else Qt.Unchecked
+                #item.setCheckState(check)
+                item.setCheckable(True)
+                self.listViewModel.appendRow(item)
+                #print("Line {}: {}".format(cnt, line))
+
+        self.listViewTracks.setModel(self.listViewModel)
+
+    def addToMap(self, input, SECTOR):
+        if sys.platform.startswith('win'):
+            p = subprocess.Popen((self.pluginPath + "/grass/run_gpx_no_time.bat", self.DATAPATH, self.pluginPath, input, SECTOR))
+            p.wait()
+        else:
+            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_gpx_no_time.sh", self.DATAPATH, self.pluginPath, input, SECTOR))
+            p.wait()
+
+        qml = open(self.DATAPATH + '/search/shp/style.qml', 'r').read()
+        f = open(self.DATAPATH + '/search/shp/' + SECTOR + '.qml', 'w')
+        #qml = qml.replace("k=\"line_width\" v=\"0.26\"", "k=\"line_width\" v=\"1.2\"")
+        f.write(qml)
+        f.close()
+
+        vector = QgsVectorLayer(self.DATAPATH + '/search/shp/' + SECTOR + '.shp', SECTOR, "ogr")
+        if not vector.isValid():
+            print "Layer " + self.DATAPATH + '/search/shp/' + SECTOR + '.shp' + " failed to load!"
+        else:
+            QgsMapLayerRegistry.instance().addMapLayer(vector)
+
+    def acceptAll(self):
+        if os.path.isfile(self.DATAPATH + '/search/temp/grouped.csv'):
+            os.remove(self.DATAPATH + '/search/temp/grouped.csv')
+
+        grouped = open(self.DATAPATH + '/search/temp/grouped.csv', 'w')
+
+        SECTOR = self.lineEditName.text()
+        if not os.path.exists(self.DATAPATH + '/search/gpx/' + SECTOR):
+            os.makedirs(self.DATAPATH + '/search/gpx/' + SECTOR)
+        i = 0
+        while self.listViewModel.item(i):
+            if self.listViewModel.item(i).checkState() == Qt.Checked:
+                QgsMessageLog.logMessage("ID: " + str(i), "GPX")
+                if sys.platform.startswith('win'):
+                    p = subprocess.Popen((self.pluginPath + "/xslt/run_xslt_no_time.bat", self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/' + str(i) + '.csv'))
+                    p.wait()
+                else:
+                    p = subprocess.Popen(('bash', self.pluginPath + "/xslt/run_xslt_no_time.sh", self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/' + str(i) + '.csv'))
+                    p.wait()
+                SECTOR_content = open(self.DATAPATH + '/search/temp/' + str(i) + '.csv', 'r').read()
+                grouped.write(SECTOR_content)
+            i += 1
+        grouped.close()
+
+        if self.checkBoxGroup.isChecked() == True:
+            QgsMessageLog.logMessage("Check", "GPX")
+            self.addToMap(self.DATAPATH + '/search/temp/grouped.csv', SECTOR)
+        else:
+            i = 0
+            while self.listViewModel.item(i):
+                if self.listViewModel.item(i).checkState() == Qt.Checked:
+                    self.addToMap(self.DATAPATH + '/search/temp/' + str(i) + '.csv', SECTOR + '_' + str(i))
+                i += 1
+            QgsMessageLog.logMessage("NoCheck", "GPX")
+        #QgsMessageLog.logMessage("Accept", "All")
+
+    def acceptTime(self):
+        #QgsMessageLog.logMessage("Accept", "A")
         SECTOR = 'K1'
         DATEFROM = '2017-06-07T15:10:00Z'
         DATETO = '2017-06-07T15:12:00'
@@ -78,24 +185,22 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                 DATETO = self.tableWidgetSectors.item(s, 2).text()
                 
         value = self.tableWidgetSectors.item(0, 0).text()
-        prjfi = QFileInfo(QgsProject.instance().fileName())
-        DATAPATH = prjfi.absolutePath()
         
         if sys.platform.startswith('win'):
-            p = subprocess.Popen((self.pluginPath + "/grass/run_gpx.bat", DATAPATH, self.pluginPath, SECTOR, DATEFROM, DATETO))
+            p = subprocess.Popen((self.pluginPath + "/grass/run_gpx.bat", self.DATAPATH, self.pluginPath, SECTOR, DATEFROM, DATETO))
             p.wait()
         else:
-            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_gpx.sh", DATAPATH, self.pluginPath, SECTOR, DATEFROM, DATETO))
+            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_gpx.sh", self.DATAPATH, self.pluginPath, SECTOR, DATEFROM, DATETO))
             p.wait()
 
-        qml = open(DATAPATH + '/search/shp/style.qml', 'r').read()
-        f = open(DATAPATH + '/search/shp/' + SECTOR + '.qml', 'w')
+        qml = open(self.DATAPATH + '/search/shp/style.qml', 'r').read()
+        f = open(self.DATAPATH + '/search/shp/' + SECTOR + '.qml', 'w')
         #qml = qml.replace("k=\"line_width\" v=\"0.26\"", "k=\"line_width\" v=\"1.2\"")
         f.write(qml)
         f.close()
 
-        vector = QgsVectorLayer(DATAPATH + '/search/shp/' + SECTOR + '.shp', SECTOR, "ogr")
+        vector = QgsVectorLayer(self.DATAPATH + '/search/shp/' + SECTOR + '.shp', SECTOR, "ogr")
         if not vector.isValid():
-            print "Layer " + DATAPATH + '/search/shp/' + SECTOR + '.shp' + " failed to load!"
+            print "Layer " + self.DATAPATH + '/search/shp/' + SECTOR + '.shp' + " failed to load!"
         else:
             QgsMapLayerRegistry.instance().addMapLayer(vector)        

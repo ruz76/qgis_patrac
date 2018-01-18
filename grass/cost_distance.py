@@ -106,6 +106,10 @@ TYPE=int(sys.argv[4])
 
 print gscript.read_command('v.in.ascii', input=PLUGIN_PATH + '/grass/coords.txt', output='coords', separator='comma' , overwrite=True)
 print gscript.read_command('v.to.rast', input='coords', output='coords', use='cat' , overwrite=True)
+print gscript.read_command('v.in.ogr', input=PLUGIN_PATH + '/grass/radial.csv', output='radial', flags='o' , overwrite=True)
+print gscript.read_command('v.to.rast', input='radial', output='radial', use='cat', overwrite=True)
+print gscript.read_command('r.reclass', input='radial', output='radial' + PLACE_ID, rules=PLUGIN_PATH + '/grass/azimuth_reclass.rules', overwrite=True)
+print gscript.read_command('r.mapcalc', expression='friction_slope_radial' + PLACE_ID + ' = friction_slope + radial' + PLACE_ID, overwrite=True)
 
 distances_f=open(PLUGIN_PATH + "/grass/distances.txt")
 lines=distances_f.readlines()
@@ -114,7 +118,7 @@ DISTANCES=lines[TYPE]
 #Metodika Hill
 print gscript.read_command('r.buffer', input='coords', output='distances' + PLACE_ID, distances=DISTANCES , overwrite=True)
 #Metodika Pastorkova
-print gscript.read_command('r.cost', input='friction_slope', output='cost' + PLACE_ID, start_points='coords' , overwrite=True)
+print gscript.read_command('r.cost', input='friction_slope_radial' + PLACE_ID, output='cost' + PLACE_ID, start_points='coords' , overwrite=True)
 
 os.remove(PLUGIN_PATH + '/grass/rules_percentage.txt')
 rules_percentage_f = open(PLUGIN_PATH + '/grass/rules_percentage.txt', 'w')

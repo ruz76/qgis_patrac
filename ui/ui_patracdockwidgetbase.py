@@ -162,6 +162,7 @@ class Ui_PatracDockWidget(object):
 
     def retranslateUi(self, PatracDockWidget):
         PatracDockWidget.setWindowTitle(QtGui.QApplication.translate("PatracDockWidget", "Pátrač", None, QtGui.QApplication.UnicodeUTF8))
+        self.btnGetArea.setText(QtGui.QApplication.translate("PatracDockWidget", "Určit prostor", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("PatracDockWidget", "Hodnoty min/max", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("PatracDockWidget", "Hodnoty max/min", None, QtGui.QApplication.UnicodeUTF8))
         self.chkManualUpdate.setText(QtGui.QApplication.translate("PatracDockWidget", "Ruční aktualizace", None, QtGui.QApplication.UnicodeUTF8))
