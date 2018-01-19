@@ -42,6 +42,9 @@ from qgis.gui import *
 
 from random import randint
 from datetime import datetime
+from dateutil import tz
+from dateutil import parser
+from dateutil.tz import tzutc, tzlocal
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'gpx.ui'))
@@ -60,7 +63,7 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         self.fillTableWidgetSectors("/search/sectors.txt", self.tableWidgetSectors)
         self.fillListViewTracks()
         today = datetime.today()
-        self.lineEditName.setText(today.strftime('%d_%H_%M'))
+        self.lineEditName.setText(today.strftime('den%d_cas%H_%M'))
 
     def fillTableWidgetSectors(self, fileName, tableWidget):
         tableWidget.setHorizontalHeaderLabels(['ID', 'Od', 'Do'])
@@ -94,18 +97,27 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
             i=i+1
 
         self.listViewModel = QStandardItemModel()
+        from_zone = tz.tzutc()
+        to_zone = tz.tzlocal()
         with open(self.DATAPATH + '/search/temp/list.csv') as fp:
             for cnt, line in enumerate(fp):
-                track = u'Track ' + str(cnt) + u' Začátek: '
+                track = u'Track ' + str(cnt) + ' '
                 items = line.split(';')
+                start = ''
+                end = ''
                 if len(items[0]) > 30:
                     items2 = items[0].split(' ')
-                    track+= items2[0]
+                    #track+= "L " + str(local) + "U: " + items2[0]
+                    start = items2[0]
                     items2 = items[1].split(' ')
-                    track += u' Konec: ' + items2[0]
+                    end = items2[0]
+                    #track += u' Konec: ' + items2[0]
                 else:
-                    track += items[0]
-                    track += u' Konec: ' + items[1]
+                    start = items[0]
+                    end = items[1]
+                start_local = self.iso_time_to_local(start)
+                end_local = self.iso_time_to_local(end)
+                track += '(' + start_local + ' <-> ' + end_local + ')'
                 item = QStandardItem(track)
                 #check = Qt.Checked if randint(0, 1) == 1 else Qt.Unchecked
                 #item.setCheckState(check)
@@ -114,6 +126,12 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                 #print("Line {}: {}".format(cnt, line))
 
         self.listViewTracks.setModel(self.listViewModel)
+
+    def iso_time_to_local(self, iso):
+        when = parser.parse(iso)
+        local = when.astimezone(tzlocal())
+        local_str = local.strftime("%Y-%m-%d %H:%M")
+        return local_str
 
     def addToMap(self, input, SECTOR):
         if sys.platform.startswith('win'):
