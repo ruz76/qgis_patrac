@@ -38,6 +38,7 @@ from ui.ui_settings import Ui_Settings
 from ui.ui_gpx import Ui_Gpx
 from ui.ui_message import Ui_Message
 from ui.ui_coords import Ui_Coords
+from ui.ui_point_tool import PointMapTool
 
 import os
 import sys
@@ -80,6 +81,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.tbtnShowSearchers.clicked.connect(self.showPeople)
         self.tbtnShowMessage.clicked.connect(self.showMessage)
 
+        self.tbtnInsertFinal.clicked.connect(self.insertFinal)
+
         userPluginPath = QFileInfo(QgsApplication.qgisUserDbFilePath()).path() + "/python/plugins/qgis_patrac"
         systemPluginPath = QgsApplication.prefixPath() + "/python/plugins/qgis_patrac"
         if QFileInfo(userPluginPath).exists():
@@ -89,6 +92,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
         self.settingsdlg = Ui_Settings(self.pluginPath)
         self.coordsdlg = Ui_Coords()
+        self.pointtool = PointMapTool(self.plugin.iface.mapCanvas())
               
         ##self.importgpxdlg.buttonBox.accepted.connect(self.importgpxdlg.accept)
 
@@ -405,7 +409,13 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
     def showImportGpx(self):
         self.importgpxdlg = Ui_Gpx(self.pluginPath)
-        self.importgpxdlg.show()    
+        self.importgpxdlg.show()
+
+    def insertFinal(self):
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        self.pointtool.setDataPath(DATAPATH)
+        self.plugin.iface.mapCanvas().setMapTool(self.pointtool)
 
     def addRasterLayer(self, path, label):
         raster = QgsRasterLayer(path, label, "gdal")

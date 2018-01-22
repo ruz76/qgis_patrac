@@ -153,8 +153,19 @@ class Ui_PatracDockWidget(object):
         self.btnRefresh.setObjectName(_fromUtf8("btnRefresh"))
         self.horizontalLayout_3.addWidget(self.btnRefresh)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.horizontalLayout_5 = QtGui.QHBoxLayout()
-        self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
+
+        self.horizontalLayoutToolbar_5 = QtGui.QHBoxLayout()
+        self.horizontalLayoutToolbar_5.setObjectName(_fromUtf8("horizontalLayoutToolbar_5"))
+
+        self.tbtnInsertFinal = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnInsertFinal.setObjectName(_fromUtf8("tbtnInsertFinal"))
+        self.tbtnInsertFinal.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "set_result.png")));
+        self.tbtnInsertFinal.setIconSize(QSize(32, 32));
+        self.tbtnInsertFinal.setFixedSize(QSize(42, 42));
+        self.horizontalLayoutToolbar_5.addWidget(self.tbtnInsertFinal)
+        self.tbtnInsertFinal.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Nález", None, QtGui.QApplication.UnicodeUTF8))
+
+        self.verticalLayout.addLayout(self.horizontalLayoutToolbar_5)
 
         PatracDockWidget.setWidget(self.dockWidgetContents)
         self.retranslateUi(PatracDockWidget)
