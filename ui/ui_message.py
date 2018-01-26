@@ -53,7 +53,7 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         self.browseButton.clicked.connect(self.showBrowse)
         response = None
         try:
-            response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=AAA111BBB', None, 5)
+            response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=*', None, 5)
             locations = response.read()
             lines = locations.split("\n")
             for line in lines:
@@ -76,11 +76,11 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         filename1 = self.lineEditPath.text()
         id = str(self.comboBoxUsers.currentText())
         message = self.plainTextEditMessage.toPlainText()
-        #data = json.dumps({'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'})
+        #data = json.dumps({'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'})
         if filename1:
             if os.path.isfile(filename1): 
-                with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'}, files={'fileToUpload': f})
+                with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'}, files={'fileToUpload': f})
                 print r.text
         else:
-            r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'})
+            r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'})
             print r.text
