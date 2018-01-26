@@ -33,7 +33,7 @@ from PyQt4.QtGui import QFileDialog
 from PyQt4.QtGui import QMessageBox
 import urllib2
 import socket
-#import requests, json
+import requests, json
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'message.ui'))
@@ -53,13 +53,14 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         self.browseButton.clicked.connect(self.showBrowse)
         response = None
         try:
-            response = urllib2.urlopen('http://158.196.143.122/patrac/mserver.php?operation=getlocations', None, 5)
+            response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=AAA111BBB', None, 5)
             locations = response.read()
             lines = locations.split("\n")
             for line in lines:
                 if line != "":
                     cols = line.split(";")
-    	        self.comboBoxUsers.addItem(cols[0])
+                if cols != None:
+        	        self.comboBoxUsers.addItem(cols[0])
         except urllib2.URLError, e:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             self.close()
@@ -75,7 +76,11 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         filename1 = self.lineEditPath.text()
         id = str(self.comboBoxUsers.currentText())
         message = self.plainTextEditMessage.toPlainText()
-        #data = json.dumps({'message': message, 'id': id, 'operation': 'insertmessage'})
-        #with open(filename1, 'rb') as f: r = requests.post('http://158.196.143.122/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage'}, files={'fileToUpload': f})
-        #print r.text
-
+        #data = json.dumps({'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'})
+        if filename1:
+            if os.path.isfile(filename1): 
+                with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'}, files={'fileToUpload': f})
+                print r.text
+        else:
+            r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'})
+            print r.text
