@@ -59,9 +59,12 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
             for line in lines:
                 if line != "":
                     cols = line.split(";")
-                if cols != None:
-        	        self.comboBoxUsers.addItem(cols[0])
-        except urllib2.URLError, e:
+                    if cols != None:
+        	            self.comboBoxUsers.addItem(str(cols[0]).decode('utf8') + ' (' + str(cols[1]) + ')')
+        except urllib2.URLError
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            self.close()
+        except e:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             self.close()
         except socket.timeout:
@@ -74,13 +77,15 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
 
     def accept(self):
         filename1 = self.lineEditPath.text()
-        id = str(self.comboBoxUsers.currentText())
+        id = str(self.comboBoxUsers.currentText()).split("(")[1][:-1]
         message = self.plainTextEditMessage.toPlainText()
         #data = json.dumps({'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'})
         if filename1:
             if os.path.isfile(filename1): 
                 with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'}, files={'fileToUpload': f})
                 print r.text
+                self.listWidgetHistory.addItem(str(self.comboBoxUsers.currentText()) + ": " + message[0:10] + "... " + " @ ")
         else:
             r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'})
             print r.text
+            self.listWidgetHistory.addItem(str(self.comboBoxUsers.currentText()) + ": " + message[0:10] + "... ")

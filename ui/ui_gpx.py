@@ -46,6 +46,11 @@ from dateutil import tz
 from dateutil import parser
 from dateutil.tz import tzutc, tzlocal
 
+try:
+    import win32api
+except:
+    QgsMessageLog.logMessage(u"Linux - no win api", "Import GPX")
+
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'gpx.ui'))
 
@@ -78,12 +83,31 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                 i=i+1
         #tableWidget.rowCount = 3
 
+    def getDrive(self):
+        drives = win32api.GetLogicalDriveStrings()
+        drives = drives.split('\000')[:-1]
+        items = ("D:", "E:", "F:", "G:", "H:", "I:")
+        item, ok = QInputDialog.getItem(self, "select input dialog",
+                                        "list of languages", drives, 0, False)
+        if ok and item:
+            return item
+        else:
+            return None
+
+
     def fillListViewTracks(self):
         if os.path.isfile(self.DATAPATH + '/search/temp/list.csv'):
             os.remove(self.DATAPATH + '/search/temp/list.csv')
+        path = '/media/gpx/Garmin/GPX/*/*.gpx'
+        if sys.platform.startswith('win'):
+            drive = self.getDrive()
+            if drive is None:
+                drive = "C:/"
+                QgsMessageLog.logMessage(u"Nebyl vybrán žádný disk, vybírám C:", "Import GPX")
+            path = drive[:-1] + '/Garmin/GPX/*/*.gpx'
         #for f in glob.iglob('E:/Garmin/GPX/*/*.gpx'):  # generator, search immediate subdirectories
         i = 0
-        for f in iglob('/media/gpx/Garmin/GPX/*/*.gpx'):
+        for f in iglob(path):
             #copyfile(f, self.DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
             shutil.copyfile(f, self.DATAPATH + '/search/gpx/' + os.path.basename(f))
             shutil.copyfile(f, self.DATAPATH + '/search/temp/' + str(i) + '.gpx')
@@ -96,36 +120,38 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                 p.wait()
             i=i+1
 
-        self.listViewModel = QStandardItemModel()
-        from_zone = tz.tzutc()
-        to_zone = tz.tzlocal()
-        with open(self.DATAPATH + '/search/temp/list.csv') as fp:
-            for cnt, line in enumerate(fp):
-                track = u'Track ' + str(cnt) + ' '
-                items = line.split(';')
-                start = ''
-                end = ''
-                if len(items[0]) > 30:
-                    items2 = items[0].split(' ')
-                    #track+= "L " + str(local) + "U: " + items2[0]
-                    start = items2[0]
-                    items2 = items[1].split(' ')
-                    end = items2[0]
-                    #track += u' Konec: ' + items2[0]
-                else:
-                    start = items[0]
-                    end = items[1]
-                start_local = self.iso_time_to_local(start)
-                end_local = self.iso_time_to_local(end)
-                track += '(' + start_local + ' <-> ' + end_local + ')'
-                item = QStandardItem(track)
-                #check = Qt.Checked if randint(0, 1) == 1 else Qt.Unchecked
-                #item.setCheckState(check)
-                item.setCheckable(True)
-                self.listViewModel.appendRow(item)
-                #print("Line {}: {}".format(cnt, line))
-
-        self.listViewTracks.setModel(self.listViewModel)
+        if os.path.isfile(self.DATAPATH + '/search/temp/list.csv'):
+            self.listViewModel = QStandardItemModel()
+            from_zone = tz.tzutc()
+            to_zone = tz.tzlocal()
+            with open(self.DATAPATH + '/search/temp/list.csv') as fp:
+                for cnt, line in enumerate(fp):
+                    track = u'Track ' + str(cnt) + ' '
+                    items = line.split(';')
+                    start = ''
+                    end = ''
+                    if len(items[0]) > 30:
+                        items2 = items[0].split(' ')
+                        #track+= "L " + str(local) + "U: " + items2[0]
+                        start = items2[0]
+                        items2 = items[1].split(' ')
+                        end = items2[0]
+                        #track += u' Konec: ' + items2[0]
+                    else:
+                        start = items[0]
+                        end = items[1]
+                    start_local = self.iso_time_to_local(start)
+                    end_local = self.iso_time_to_local(end)
+                    track += '(' + start_local + ' <-> ' + end_local + ')'
+                    item = QStandardItem(track)
+                    #check = Qt.Checked if randint(0, 1) == 1 else Qt.Unchecked
+                    #item.setCheckState(check)
+                    item.setCheckable(True)
+                    self.listViewModel.appendRow(item)
+                    #print("Line {}: {}".format(cnt, line))
+            self.listViewTracks.setModel(self.listViewModel)
+        else:
+            QgsMessageLog.logMessage(u"Nebyl nalezen žádný záznam:", "Import GPX")
 
     def iso_time_to_local(self, iso):
         when = parser.parse(iso)

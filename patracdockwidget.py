@@ -562,15 +562,15 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layer.deleteFeatures( listOfIds )
         response = None
         try:
-            response = urllib2.urlopen('http://158.196.143.122/patrac/mserver.php?operation=getlocations', None, 5)
+            response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=*', None, 5)
             locations = response.read()
             lines = locations.split("\n")
             for line in lines:
                 if line != "": # add other needed checks to skip titles
                     cols = line.split(";")
                     fet = QgsFeature()
-                    fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(float(cols[2]),float(cols[1]))))
-                    fet.setAttributes([cols[0]])
+                    fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(float(cols[3]),float(cols[2]))))
+                    fet.setAttributes([str(cols[0]).decode('utf8') + ' (' + str(cols[1]) + ')'])
                     provider.addFeatures([fet])
             layer.commitChanges()
             layer.triggerRepaint()
