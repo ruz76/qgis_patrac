@@ -1,12 +1,8 @@
-
 #!/usr/bin/env python
 
-import glob, os
+import os
 import sys
 import subprocess
-import csv
-import io
-from shutil import copyfile
 
 #Jen test zda to bezi
 #f = open('/tmp/test.txt', 'w')
@@ -45,14 +41,13 @@ grass7bin_mac = '/Applications/GRASS/GRASS-7.0.app/'
 # DATA
 # define GRASS DATABASE
 # add your path to grassdata (GRASS GIS database) directory
-DATAPATH=str(sys.argv[1])
-PLUGINPATH=str(sys.argv[2]) 
+DATAPATH=str(sys.argv[1]) 
 gisdb = DATAPATH + "/grassdata"
 # the following path is the default path on MS Windows
 # gisdb = os.path.join(os.path.expanduser("~"), "Documents/grassdata")
 
 # specify (existing) location and mapset
-location = "wgs84"
+location = "jtsk"
 mapset   = "PERMANENT"
 
 
@@ -102,58 +97,32 @@ import grass.script.setup as gsetup
 # launch session
 gsetup.init(gisbase,
             gisdb, location, mapset)
- 
-#gscript.message('Current GRASS GIS 7 environment:')
-#print gscript.gisenv()
 
-INPUT=str(sys.argv[3])
-SECTOR=str(sys.argv[4])
-DATEFROM=str(sys.argv[5])
-DATETO=str(sys.argv[6])
-PATH=str(sys.argv[7])
+PLUGIN_PATH=str(sys.argv[2]) 
+XMIN=float(sys.argv[3])
+YMIN=float(sys.argv[4])
+XMAX=float(sys.argv[5])
+YMAX=float(sys.argv[6])
+DATAINPUTPATH=str(sys.argv[7])
 
-#Creates output directory
-if not os.path.exists(DATAPATH + '/search/gpx/' + SECTOR):
-    os.makedirs(DATAPATH + '/search/gpx/' + SECTOR)
-
-#Removes previously created output in WKT
-if os.path.isfile(DATAPATH + '/search/temp/out.csv'):
-    os.remove(DATAPATH + '/search/temp/out.csv')
-
-#Path to GPX is send as parameter
-for f in glob.iglob(PATH): # generator, search immediate subdirectories
-    print f
-    #Copy original files
-    copyfile(f, DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
-    #Extracts from file records in time extent
-    p = subprocess.Popen((PLUGINPATH + '/xslt/run_xslt.bat', PLUGINPATH, f, DATAPATH + '/search/temp/out.csv', DATEFROM, DATETO))
-    p.wait()
-
-#Reads GML header
-header = io.open(PLUGINPATH + '/xslt/gml_header.gml', encoding='utf-8', mode='r').read()
-#Writes GML header
-f = io.open(DATAPATH + '/search/temp/out_polyline.gml', encoding='utf-8', mode='w')
-f.write(header)
-f.write(u'<gml:featureMember>\n')
-f.write(u'<ogr:sample fid="sample.0">\n')
-f.write(u'<ogr:geometryProperty><gml:LineString><gml:coordinates>\n')
-        
-#Reads all selected records and writes them as one linestring to GML
-with open(DATAPATH + '/search/temp/out.csv') as csvDataFile:
-    csvReader = csv.reader(csvDataFile, delimiter=';')
-    for row in csvReader:
-        ##print(row)    
-        f.write(row[1] + u',' + row[0] + u' ')
-
-f.write(u'</gml:coordinates></gml:LineString></ogr:geometryProperty>\n')
-f.write(u'<ogr:cat>13</ogr:cat>\n')
-f.write(u'</ogr:sample>\n')
-f.write(u'</gml:featureMember>\n')
-f.write(u'</ogr:FeatureCollection>')
-f.close()
-
-#TODO - make it faster without GRASSS
-#Imports GML to GRASS
-print gscript.read_command('v.in.ogr', input=DATAPATH + '/search/temp/out_polyline.gml', output='out_polyline', flags='o', overwrite=True)
-#Exports SHP from imported GML
-print gscript.read_command('v.out.ogr', input='out_polyline', output=DATAPATH + '/search/shp/' + SECTOR + '.shp', overwrite=True)
+#Sets the region for export
+#g.region e=-641060.857143 w=-658275.142857 n=-1036549.0 s=-1046549.0
+print gscript.read_command('g.region', e=XMAX, w=XMIN, n=YMAX, s=YMIN, res='5')
+#Imports landuse
+#Bin would be better (size is smaller, export is faster), but there are some problems with import
+print gscript.read_command('r.in.ascii', output='landuse', input=DATAPATH+'/grassdata/landuse.ascii', overwrite=True)
+#Imports friction_slope
+#Bin would be better (size is smaller, export is faster), but there are some problems with import
+print gscript.read_command('r.in.ascii', output='friction_slope', input=DATAPATH+'/grassdata/friction_slope.ascii', overwrite=True)
+#Problem with null data - set to 10
+print gscript.read_command('r.null', map='friction_slope', null='10')
+#Imports sectors and select them according to Extent
+#Bin would be better (size is smaller, export is faster), but there are some problems with import
+print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/ZABAGED/line_x', layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True)
+#Computes areas
+print gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='area_ha DOUBLE PRECISION')
+print gscript.read_command('v.to.db', map='sectors_group', layer='1', option='area', units='hectares', columns='area_ha')
+#Adds label column
+print gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='label VARCHAR(50)')
+#Exports sectors with comuted areas
+print gscript.read_command('v.out.ogr', input='sectors_group', output=DATAPATH +'/pracovni/sektory_group_selected.shp', overwrite=True)

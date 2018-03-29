@@ -19,6 +19,34 @@ class Ui_PatracDockWidget(object):
         self.verticalLayout = QtGui.QVBoxLayout(self.dockWidgetContents)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
 
+        self.horizontalLayoutToolbarSearch = QtGui.QHBoxLayout()
+        self.horizontalLayoutToolbarSearch.setObjectName(_fromUtf8("horizontalLayoutToolbarSearch"))
+
+        self.msearch = QLineEdit()
+        self.msearch.setMaximumWidth(280)
+        self.msearch.setAlignment(Qt.AlignLeft)
+        self.msearch.setPlaceholderText(u"Zadejte název obce ...")
+        self.horizontalLayoutToolbarSearch.addWidget(self.msearch)
+
+        self.tbtnZoomToMunicipality = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnZoomToMunicipality.setObjectName(_fromUtf8("tbtnZoomToMunicipality"))
+        self.tbtnZoomToMunicipality.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "zoom.png")));
+        self.tbtnZoomToMunicipality.setIconSize(QSize(32, 32));
+        self.tbtnZoomToMunicipality.setFixedSize(QSize(42, 42));
+        self.tbtnZoomToMunicipality.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Přiblížit", None,
+                                                                       QtGui.QApplication.UnicodeUTF8))
+        self.horizontalLayoutToolbarSearch.addWidget(self.tbtnZoomToMunicipality)
+
+        self.tbtnCreateProject = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnCreateProject.setObjectName(_fromUtf8("tbtnCreateProject"))
+        self.tbtnCreateProject.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "project.png")));
+        self.tbtnCreateProject.setIconSize(QSize(32, 32));
+        self.tbtnCreateProject.setFixedSize(QSize(42, 42));
+        self.tbtnCreateProject.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Vytvoření projektu", None, QtGui.QApplication.UnicodeUTF8))
+        self.horizontalLayoutToolbarSearch.addWidget(self.tbtnCreateProject)
+
+        self.verticalLayout.addLayout(self.horizontalLayoutToolbarSearch)
+
         self.horizontalLayoutToolbar = QtGui.QHBoxLayout()
         self.horizontalLayoutToolbar.setObjectName(_fromUtf8("horizontalLayoutToolbar"))  
 
@@ -53,30 +81,6 @@ class Ui_PatracDockWidget(object):
         self.tbtnExportSectors.setFixedSize(QSize(42,42));
         self.horizontalLayoutToolbar.addWidget(self.tbtnExportSectors)
         self.tbtnExportSectors.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Exportovat sektory", None, QtGui.QApplication.UnicodeUTF8)) 
-
-        self.tbtnImportPaths = QtGui.QPushButton(self.dockWidgetContents)
-        self.tbtnImportPaths.setObjectName(_fromUtf8("tbtnImportPaths"))  
-        self.tbtnImportPaths.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "import_paths.png")));
-        self.tbtnImportPaths.setIconSize(QSize(32,32));
-        self.tbtnImportPaths.setFixedSize(QSize(42,42));
-        self.horizontalLayoutToolbar.addWidget(self.tbtnImportPaths)
-        self.tbtnImportPaths.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Importovat cesty z GPS", None, QtGui.QApplication.UnicodeUTF8)) 
-
-        self.tbtnShowSearchers = QtGui.QPushButton(self.dockWidgetContents)
-        self.tbtnShowSearchers.setObjectName(_fromUtf8("tbtnShowSearchers"))  
-        self.tbtnShowSearchers.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "show_searchers.png")));
-        self.tbtnShowSearchers.setIconSize(QSize(32,32));
-        self.tbtnShowSearchers.setFixedSize(QSize(42,42));
-        self.horizontalLayoutToolbar.addWidget(self.tbtnShowSearchers)
-        self.tbtnShowSearchers.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Ukázat pátrače", None, QtGui.QApplication.UnicodeUTF8)) 
-
-        self.tbtnShowMessage = QtGui.QPushButton(self.dockWidgetContents)
-        self.tbtnShowMessage.setObjectName(_fromUtf8("tbtnShowMessage"))  
-        self.tbtnShowMessage.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "message.png")));
-        self.tbtnShowMessage.setIconSize(QSize(32,32));
-        self.tbtnShowMessage.setFixedSize(QSize(42,42));
-        self.horizontalLayoutToolbar.addWidget(self.tbtnShowMessage)
-        self.tbtnShowMessage.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Zprávy", None, QtGui.QApplication.UnicodeUTF8)) 
 
         self.tbtnShowSettings = QtGui.QPushButton(self.dockWidgetContents)
         self.tbtnShowSettings.setObjectName(_fromUtf8("tbtnShowSettings"))  
@@ -157,13 +161,50 @@ class Ui_PatracDockWidget(object):
         self.horizontalLayoutToolbar_5 = QtGui.QHBoxLayout()
         self.horizontalLayoutToolbar_5.setObjectName(_fromUtf8("horizontalLayoutToolbar_5"))
 
+        self.tbtnImportPaths = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnImportPaths.setObjectName(_fromUtf8("tbtnImportPaths"))
+        self.tbtnImportPaths.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "import_paths.png")));
+        self.tbtnImportPaths.setIconSize(QSize(32, 32));
+        self.tbtnImportPaths.setFixedSize(QSize(42, 42));
+        self.horizontalLayoutToolbar_5.addWidget(self.tbtnImportPaths)
+        self.tbtnImportPaths.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Importovat cesty z GPS", None,
+                                                                     QtGui.QApplication.UnicodeUTF8))
+        self.tbtnShowSearchers = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnShowSearchers.setObjectName(_fromUtf8("tbtnShowSearchers"))
+        self.tbtnShowSearchers.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "show_searchers.png")));
+        self.tbtnShowSearchers.setIconSize(QSize(32, 32));
+        self.tbtnShowSearchers.setFixedSize(QSize(42, 42));
+        self.horizontalLayoutToolbar_5.addWidget(self.tbtnShowSearchers)
+        self.tbtnShowSearchers.setToolTip(
+            QtGui.QApplication.translate("PatracDockWidget", "Ukázat pátrače (body)", None, QtGui.QApplication.UnicodeUTF8))
+
+        self.tbtnShowSearchersTracks = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnShowSearchersTracks.setObjectName(_fromUtf8("tbtnShowSearchersTracks"))
+        self.tbtnShowSearchersTracks.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "show_searchers_tracks.png")));
+        self.tbtnShowSearchersTracks.setIconSize(QSize(32, 32));
+        self.tbtnShowSearchersTracks.setFixedSize(QSize(42, 42));
+        self.horizontalLayoutToolbar_5.addWidget(self.tbtnShowSearchersTracks)
+        self.tbtnShowSearchersTracks.setToolTip(
+            QtGui.QApplication.translate("PatracDockWidget", "Ukázat pátrače (linie)", None, QtGui.QApplication.UnicodeUTF8))
+
+        self.tbtnShowMessage = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnShowMessage.setObjectName(_fromUtf8("tbtnShowMessage"))
+        self.tbtnShowMessage.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "message.png")));
+        self.tbtnShowMessage.setIconSize(QSize(32, 32));
+        self.tbtnShowMessage.setFixedSize(QSize(42, 42));
+        self.horizontalLayoutToolbar_5.addWidget(self.tbtnShowMessage)
+        self.tbtnShowMessage.setToolTip(
+            QtGui.QApplication.translate("PatracDockWidget", "Zprávy", None, QtGui.QApplication.UnicodeUTF8))
+
+
         self.tbtnInsertFinal = QtGui.QPushButton(self.dockWidgetContents)
         self.tbtnInsertFinal.setObjectName(_fromUtf8("tbtnInsertFinal"))
         self.tbtnInsertFinal.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "set_result.png")));
         self.tbtnInsertFinal.setIconSize(QSize(32, 32));
         self.tbtnInsertFinal.setFixedSize(QSize(42, 42));
         self.horizontalLayoutToolbar_5.addWidget(self.tbtnInsertFinal)
-        self.tbtnInsertFinal.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Nález", None, QtGui.QApplication.UnicodeUTF8))
+        self.tbtnInsertFinal.setToolTip(QtGui.QApplication.translate(
+            "PatracDockWidget", "Nález", None, QtGui.QApplication.UnicodeUTF8))
 
         self.verticalLayout.addLayout(self.horizontalLayoutToolbar_5)
 
@@ -172,9 +213,15 @@ class Ui_PatracDockWidget(object):
         QtCore.QMetaObject.connectSlotsByName(PatracDockWidget)
 
     def retranslateUi(self, PatracDockWidget):
-        PatracDockWidget.setWindowTitle(QtGui.QApplication.translate("PatracDockWidget", "Pátrač", None, QtGui.QApplication.UnicodeUTF8))
-        self.btnGetArea.setText(QtGui.QApplication.translate("PatracDockWidget", "Určit prostor", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("PatracDockWidget", "Hodnoty min/max", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("PatracDockWidget", "Hodnoty max/min", None, QtGui.QApplication.UnicodeUTF8))
-        self.chkManualUpdate.setText(QtGui.QApplication.translate("PatracDockWidget", "Ruční aktualizace", None, QtGui.QApplication.UnicodeUTF8))
-        self.btnRefresh.setText(QtGui.QApplication.translate("PatracDockWidget", "Aktualizovat", None, QtGui.QApplication.UnicodeUTF8))
+        PatracDockWidget.setWindowTitle(QtGui.QApplication.translate(
+            "PatracDockWidget", "Pátrač", None, QtGui.QApplication.UnicodeUTF8))
+        self.btnGetArea.setText(QtGui.QApplication.translate(
+            "PatracDockWidget", "Určit prostor", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate(
+            "PatracDockWidget", "Hodnoty min/max", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate(
+            "PatracDockWidget", "Hodnoty max/min", None, QtGui.QApplication.UnicodeUTF8))
+        self.chkManualUpdate.setText(QtGui.QApplication.translate(
+            "PatracDockWidget", "Ruční aktualizace", None, QtGui.QApplication.UnicodeUTF8))
+        self.btnRefresh.setText(QtGui.QApplication.translate(
+            "PatracDockWidget", "Aktualizovat", None, QtGui.QApplication.UnicodeUTF8))

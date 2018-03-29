@@ -47,12 +47,6 @@ class Ui_Result(QtGui.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(Ui_Result, self).__init__(parent)
-        # Set up the user interface from Designer.
-        # After setupUI you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
-        #self.init_param()
         self.setupUi(self)
         self.buttonBox.accepted.connect(self.accept)
 
@@ -129,9 +123,38 @@ class Ui_Result(QtGui.QDialog, FORM_CLASS):
         self.lineEditCoords.setText(str(round(self.point.x())) + ' ' + str(round(self.point.y())))
 
     def accept(self):
+        self.saveXML()
+        self.saveHTML()
+        self.close()
+
+    def saveHTML(self):
+        html = io.open(self.DATAPATH + "/search/result.html", encoding='utf-8', mode="w")
+        html.write(u'<!DOCTYPE html>\n')
+        html.write(u'<html><head><meta charset = "UTF-8">\n')
+        html.write(u'<title>Report z výsledku pátrání</title>\n')
+        html.write(u'</head>\n')
+        html.write(u'<body>\n')
+        html.write(u"<h1>Výsledek</h1>\n")
+        html.write(u"<p>Souřadnice (S-JTSK): " + self.lineEditCoords.text() + u"</p>\n")
+        html.write(u"<p>Pohřešování od: " + self.dateTimeEditMissing.text() + u"</p>\n")
+        html.write(u"<p>Oznámení od pohřešování: " + self.spinBoxHourFromMissing.text() + u" h</p>\n")
+        html.write(u"<p>Pohlaví: " + self.comboBoxSex.currentText() + u"</p>\n")
+        html.write(u"<p>Věk: " + self.spinBoxAge.text() + u"</p>\n")
+        html.write(u"<p>Znalost terénu: " + self.comboBoxTerrain.currentText() + u"</p>\n")
+        html.write(u"<p>Důvod: " + self.comboBoxPurpose.currentText() + u"</p>\n")
+        html.write(u"<p>Kondice: " + self.comboBoxCondition.currentText() + u"</p>\n")
+        html.write(u"<p>Zdravotní stav: " + self.comboBoxHealth.currentText() + u"</p>\n")
+        html.write(u"<p>Hodin od oznámení: " + self.spinBoxHourFromAnnounce.text() + u"</p>\n")
+        html.write(u"<p>Místo: " + self.comboBoxPlace.currentText() + u"</p>\n")
+        html.write(u"<p>Upřesnění místa: " + self.comboBoxPlace2.currentText() + u"</p>\n")
+        html.write(u"<p>Aktuální zdravotní stav: " + self.comboBoxHealth2.currentText() + u"</p>\n")
+        html.write(u"<p>Poznámka: " + self.plainTextEditNote.toPlainText() + u"</p>\n")
+        html.write(u"</body>\n")
+        html.write(u"</html>\n")
+        html.close()
+
+    def saveXML(self):
         xml = io.open(self.DATAPATH + "/search/result.xml", encoding='utf-8', mode='w')
-        #html = open(self.DATAPATH + "/search/result.html", "w")
-        #TODO taky htl, ale tam jsou zas ty debiliny s UTF
         xml.write(u'<?xml version="1.0"?>\n')
         xml.write(u"<result>\n")
         xml.write(u"<coords>" + self.lineEditCoords.text() + u"</coords>\n")
@@ -158,7 +181,6 @@ class Ui_Result(QtGui.QDialog, FORM_CLASS):
         xml.write(u"<note>" + self.plainTextEditNote.toPlainText() + u"</note>\n")
         xml.write(u"</result>\n")
         xml.close()
-        self.close()
 
     def setDataPath(self, DATAPATH):
         self.DATAPATH = DATAPATH

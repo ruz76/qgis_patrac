@@ -31,37 +31,57 @@ import csv
 from PyQt4 import QtGui, uic
 from PyQt4.QtGui import QFileDialog
 from PyQt4.QtGui import QMessageBox
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+from qgis.core import *
+from qgis.gui import *
 import urllib2
 import socket
 import requests, json
+import io
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'message.ui'))
 
 class Ui_Message(QtGui.QDialog, FORM_CLASS):
-    def __init__(self, pluginPath, parent=None):
+    """Dialog for sending the messages
+        TODO - add functionality for history
+        TODO - add possibility to send message to all users
+        TODO - gets searchid from settings
+    """
+    def __init__(self, pluginPath, DATAPATH, parent=None):
         """Constructor."""
         super(Ui_Message, self).__init__(parent)
-        # Set up the user interface from Designer.
-        # After setupUI you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
-        #self.init_param()
         self.setupUi(self)
         self.pluginPath = pluginPath
+        self.DATAPATH = DATAPATH
         self.browseButton.clicked.connect(self.showBrowse)
+        self.btnCheckAll.clicked.connect(self.checkAll)
+        self.btnCheckNone.clicked.connect(self.checkNone)
+        self.fillSearchersList()
+
+    def fillSearchersList(self):
+        self.listViewModel = QStandardItemModel()
         response = None
+        # Connects to the server to obtain list of users based on list of locations
         try:
-            response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=*', None, 5)
+            # response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=AAA111BBB', None, 5)
+            response = urllib2.urlopen(
+                'http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=' + self.getSearchID(), None, 5)
             locations = response.read()
             lines = locations.split("\n")
+            # Loops via locations
             for line in lines:
                 if line != "":
                     cols = line.split(";")
                     if cols != None:
-        	            self.comboBoxUsers.addItem(str(cols[0]).decode('utf8') + ' (' + str(cols[1]) + ')')
-        except urllib2.URLError
+                        # Adds name of the user and session id to the list
+                        #self.comboBoxUsers.addItem(str(cols[3]).decode('utf8') + ' (' + str(cols[0]) + ')')
+                        item = QStandardItem(str(cols[3]).decode('utf8') + ' (' + str(cols[0]) + ')')
+                        item.setCheckable(True)
+                        self.listViewModel.appendRow(item)
+            self.listViewSearchers.setModel(self.listViewModel)
+        except urllib2.URLError:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             self.close()
         except e:
@@ -70,22 +90,96 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         except socket.timeout:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             self.close()
-    
+
+    def getSearchID(self):
+        searchid = open(self.pluginPath + '/grass/searchid.txt', 'r').read()
+        return searchid.strip()
+
     def showBrowse(self):
+        """Opens file dialog for browsing"""
         filename1 = QFileDialog.getOpenFileName()
         self.lineEditPath.setText(filename1)
 
+    def checkAll(self):
+        i = 0
+        while self.listViewModel.item(i):
+            self.listViewModel.item(i).setCheckState(Qt.Checked)
+            i += 1
+
+    def checkNone(self):
+        i = 0
+        while self.listViewModel.item(i):
+            self.listViewModel.item(i).setCheckState(Qt.Unchecked)
+            i += 1
+
+    def getSearchersIDS(self):
+        i = 0
+        added = 0
+        ids = ""
+        while self.listViewModel.item(i):
+            if self.listViewModel.item(i).checkState() == Qt.Checked:
+                id = self.listViewModel.item(i).text().split("(")[1][:-1]
+                if added > 0:
+                    ids = ids + ";" + id
+                else:
+                    ids = id
+                added += 1
+            i += 1
+        return ids
+
+    def getSearchersNames(self):
+        i = 0
+        added = 0
+        names = ""
+        while self.listViewModel.item(i):
+            if self.listViewModel.item(i).checkState() == Qt.Checked:
+                name = self.listViewModel.item(i).text().split("(")[0][:-1]
+                if added > 0:
+                    names = names + ";" + name
+                else:
+                    names = name
+                added += 1
+            i += 1
+        return names
+
     def accept(self):
+        """Sends the message"""
+        #Gets the filename
         filename1 = self.lineEditPath.text()
-        id = str(self.comboBoxUsers.currentText()).split("(")[1][:-1]
+        #Gets the sessionid from combobox
+        #id = str(self.comboBoxUsers.currentText()).split("(")[1][:-1]
+        ids = self.getSearchersIDS()
+        QgsMessageLog.logMessage(ids, "Patrac")
+        #TODO test if something is selected
+        #Gets the message as plain text
         message = self.plainTextEditMessage.toPlainText()
-        #data = json.dumps({'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'})
+        searchid = self.getSearchID()
         if filename1:
-            if os.path.isfile(filename1): 
-                with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'}, files={'fileToUpload': f})
-                print r.text
-                self.listWidgetHistory.addItem(str(self.comboBoxUsers.currentText()) + ": " + message[0:10] + "... " + " @ ")
+            if os.path.isfile(filename1):
+                #If the file exists
+                #with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'}, files={'fileToUpload': f})
+                with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php',
+                                                                   data={'message': message, 'ids': ids,
+                                                                         'operation': 'insertmessages',
+                                                                         'searchid': searchid},
+                                                                   files={'fileToUpload': f})
+                QgsMessageLog.logMessage("Response: " + r.text, "Patrac")
+                #Adds message info to the list of sent messages
+                #Should be better - possibility to read whole message
+                self.listWidgetHistory.addItem(str(self.getSearchersNames()) + ": " + message[0:10] + "... " + " @ ")
+                #Stores message sinto file for archiving
+                with io.open(self.DATAPATH + "/pracovni/zpravy.txt", encoding='utf-8', mode="a") as messages:
+                    messages.write(str(self.getSearchersNames()) + "\n" + message + "\nFile:" + filename1 + "\n--------------------\n")
         else:
-            r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': '*'})
-            print r.text
-            self.listWidgetHistory.addItem(str(self.comboBoxUsers.currentText()) + ": " + message[0:10] + "... ")
+            #If file is not specified then send without file
+            #r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'})
+            r = requests.post('http://gisak.vsb.cz/patrac/mserver.php',
+                              data={'message': message, 'ids': ids, 'operation': 'insertmessages',
+                                    'searchid': searchid})
+            QgsMessageLog.logMessage("Response: " + r.text, "Patrac")
+            # Adds message info to the list of sent messages
+            # Should be better - possibility to read whole message
+            self.listWidgetHistory.addItem(str(self.getSearchersNames()) + ": " + message[0:10] + "... ")
+            # Stores message sinto file for archiving
+            with io.open(self.DATAPATH + "/pracovni/zpravy.txt", encoding='utf-8', mode="a") as messages:
+                messages.write(str(self.getSearchersNames()) + "\n" + message + "\n--------------------\n")

@@ -7,10 +7,12 @@ from qgis.gui import *
 from ui_result import Ui_Result
 
 class PointMapTool(QgsMapTool):
+  """Map tool for click in the map"""
   def __init__(self, canvas):
       self.canvas = canvas
       QgsMapTool.__init__(self, self.canvas)
       self.reset()
+      #Dialog for setting result output
       self.dialog = Ui_Result()
       self.DATAPATH = ''
 
@@ -25,7 +27,7 @@ class PointMapTool(QgsMapTool):
 
   def canvasReleaseEvent(self, e):
       if self.point is not None:
-          print "Point: ", self.point.x()
+          #print "Point: ", self.point.x()
           self.dialog.setPoint(self.point)
           self.dialog.setDataPath(self.DATAPATH)
           self.dialog.show()

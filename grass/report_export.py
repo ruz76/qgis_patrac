@@ -106,39 +106,49 @@ gsetup.init(gisbase,
 PLUGIN_PATH=str(sys.argv[2]) 
 COUNT=int(sys.argv[3])
 print "COUNT: " + str(COUNT)
+#Imports sektory_group_selected.shp to grass layer sektory_group_selected_modified (may be modified by user)
 print gscript.read_command('v.import', input=DATAPATH + '/pracovni/sektory_group_selected.shp', layer='sektory_group_selected', output='sektory_group_selected_modified', overwrite=True)
 
+#Sets number of search units to zero
 SUM_POCET_KPT = 0
 SUM_POCET_PT = 0
 SUM_POCET_VPT = 0
 SUM_POCET_PT_ALT = 0
 
+#Reads header of report
 header = io.open(DATAPATH + '/pracovni/report_header.html', encoding='utf-8', mode='r').read()
+#Writes header to report
 f = io.open(DATAPATH + '/pracovni/report.html', encoding='utf-8', mode='w')
 f.write(header)
 f.write(u'<h1>REPORT</h1>\n')
 
-
+#Loops via all selected search sectors based on number of sectors
 for i in xrange(1, COUNT+1):
     print i
     #vybrani jednoho sektoru dle poradi
+    #Selects one sector based on order (attribute cats is from 1 to number of items)
     print gscript.read_command('v.extract', input='sektory_group_selected_modified', output='sektory_group_selected_modified_' + str(i), where="cat='"+str(i)+"'", overwrite=True)
     #ziskani atributu plocha a label
+    #Gets attribute plocha (area) and label
     VALUES=gscript.read_command('v.db.select', map='sektory_group_selected_modified_' + str(i), columns='label,area_ha', flags="c")
+    #Pipe is delimiter of v.db.select output
     VALUESITEMS=VALUES.split('|')
 
     #zamaskovani rastru s vyuzitim polygonu sektoru
+    #Mask working area based on are of current sector
     print gscript.read_command('r.mask', vector='sektory_group_selected_modified', where="cat='"+str(i)+"'", overwrite=True)
 
     #ziskani reportu - procenta ploch v sektoru
+    #Gets stats for landuse areas in masked region
     REPORT=gscript.read_command('r.stats', input='landuse', separator='pipe', flags='pln')
     f.write(u"<hr/>\n")
+
+    #Prints previously obtained area and label of the sector
     f.write(u"<h2>SEKTOR " + str(VALUESITEMS[0]) + "</h2>\n")
     f.write(u"<p>PLOCHA " + str(int(VALUESITEMS[1])) + " ha</p>\n")
     f.write(u"<h3>Typy povrchu</h3>\n")
-    #TODO - prevod reportu do UTF - nejde
-    #f.write(u"<pre>" + str(REPORT).encode('utf-8') + u"</pre>\n")
-    
+
+    #Sets areas of types of areas to zero
     #TODO - vyjasnit zarazeni typu + mozna pouzit i letecke snimky - nejaká jednoduchá automaticka rizena klasifikace
     P1=0 #volny schudny bez porostu (louky, pole ) - nejsem schopen zatim z dat identifikovat, mozna dle data patrani, v zime bude pole bez porostu a louka asi taky
     P2=0 #volny schudny s porostem (louky, pole ) - zatim tedy bude vse s porostem
@@ -152,6 +162,8 @@ for i in xrange(1, COUNT+1):
 
     REPORTITEMS = REPORT.splitlines(False)
 
+    #Decides for each type of area from REPORT in which category belongs
+    #TODO - make it on the side of GRASS - do reclass and run on landuse_types of somethin like it
     #prepocet ploch v sektoru dle kategorii nasazeni tymu
     for REPORTITEM in REPORTITEMS:
         REPORTITEMVALUES = REPORTITEM.split('|')
@@ -226,6 +238,7 @@ for i in xrange(1, COUNT+1):
         if REPORTITEMVALUES[0] == '115': #115:Vinice (VINICE)
             P4 = P4 + float(REPORTITEMVALUES[2].split('%')[0])
 
+    #Writes output to the report
     f.write(u"<ul>\n")
     f.write(u"<li>volný schůdný bez porostu: " + str(P1) + " %</li>\n")
     f.write(u"<li>volný schůdný s porostem: " + str(P2) + " %</li>\n")
@@ -237,12 +250,14 @@ for i in xrange(1, COUNT+1):
     f.write(u"<li>městské parky a hřiště bez osob: " + str(P8) + " %</li>\n")
     f.write(u"<li>vodní plocha: " + str(P9) + " %</li>\n")
     f.write(u"</ul>\n")
-    
+
+    #Sets current number of units to zero
     POCET_KPT = 0
     POCET_PT = 0
     POCET_PT_ALT = 0
     POCET_KPT_ALT = 0
 
+    #For each type of area is counted number of necessary search units
     POCET_KPT = POCET_KPT + (((int(VALUESITEMS[1]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
     POCET_KPT_ALT = POCET_KPT_ALT + (((int(VALUESITEMS[1]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
     POCET_PT_ALT = POCET_PT_ALT + (((int(VALUESITEMS[1]) / 100.0) * P1) / 30.0) #30 je plocha pro hledani jednim tymem
@@ -269,6 +284,7 @@ for i in xrange(1, COUNT+1):
     if P9 > 0:
         POCET_VPT = 1 #jeden tym pro vodni plochu
 
+    #Writes to the report
     f.write(u"\n<h3>Nasazení</h3>\n");
     f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_KPT)) + u" Kynologických pátracích týmů (KPT) k propátraní do 3 hodin</p>\n");
     f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_PT)) + u" Pátracích týmů (PT) s dvaceti členy k propátraní do 3 hodin</p>\n");
@@ -277,22 +293,27 @@ for i in xrange(1, COUNT+1):
 
     #export do SHP s nazvem dle atributu label
     #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/', output_layer=str(VALUESITEMS[0]), output_type='line' overwrite=True)
+    #Adds information from report to attribute of the layer
     print gscript.read_command('v.db.addcolumn', map='sektory_group_selected_modified_' + str(i), columns='report varchar(255)')
     print gscript.read_command('v.db.update', map='sektory_group_selected_modified_' + str(i), layer='1', column='report', value='KPT=' + str(math.ceil(POCET_KPT)) + ', PT='+ str(math.ceil(POCET_PT)) + ', VPT=' + str(math.ceil(POCET_VPT)) + ', APT=' + str(math.ceil(POCET_PT_ALT)))
+    #Exports sector to the SHP
     print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/'+str(VALUESITEMS[0])+'.shp', output_layer=str(VALUESITEMS[0]), output_type='line', overwrite=True)
 
-
+    #Increase the sums of number of units
     SUM_POCET_KPT += math.ceil(POCET_KPT)
     SUM_POCET_PT += math.ceil(POCET_PT)
     SUM_POCET_VPT += math.ceil(POCET_VPT)
     SUM_POCET_PT_ALT += math.ceil(POCET_KPT_ALT)
 
+#Removes mask to be ready for another calculations for whole area
 print gscript.read_command('r.mask', flags="r")
 
+#Header for search time
 f.write(u"<hr/>\n")
 f.write(u"\n<h2>Doba pro hledání</h2>\n");
 f.write(u"\n<p>Pro prohledání se počítá 3 hodiny jedním týmem</p>\n");
 
+#Reads numbers for existing search units from units.txt
 with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
     i=0
     for row in csv.reader(fileInput, delimiter=';'):
@@ -302,6 +323,7 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
             if j == 0:
                 cur_count = int(field)
                 j=j+1
+                #Dog
                 if i == 0: #Pes
                     if cur_count != 0:
                         cur_pomer = float(SUM_POCET_KPT) / float(cur_count)
@@ -309,6 +331,7 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
                         f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
                     else:
                         f.write(u"\n<p>K dispozici není žádný KPT. Je nutné využít náhradu.</p>\n");
+                #Search team
                 if i == 1: #Rojnice
                     if cur_count != 0:
                         cur_pomer = float(SUM_POCET_PT) / (float(cur_count) / float(20))
@@ -317,6 +340,7 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
                         #TODO Dořešit SUM_POCET_PT_ALT
                     else:
                         f.write(u"\n<p>K dispozici není žádný člověk pro PT. Je nutné nějaké zajistit.</p>\n");
+                #Diver
                 if i == 5: #Potápěč
                     if cur_count != 0:
                         cur_pomer = float(SUM_POCET_VPT) / (float(cur_count) / float(2))
@@ -326,7 +350,9 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
                         f.write(u"\n<p>K dispozici není žádný potápěč. Je nutné nějaké zajistit.</p>\n");
         i=i+1
 
+#Writes footer
 footer = io.open(DATAPATH + '/pracovni/report_footer.html', encoding='utf-8', mode='r').read()
 f.write(footer)
 f.close()
+#Opens report in default browser
 webbrowser.open("file://" + DATAPATH + "/pracovni/report.html")

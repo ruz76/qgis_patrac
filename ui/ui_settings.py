@@ -35,15 +35,10 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'settings.ui'))
 
 class Ui_Settings(QtGui.QDialog, FORM_CLASS):
+    """Dialog for settings"""
     def __init__(self, pluginPath, parent=None):
         """Constructor."""
         super(Ui_Settings, self).__init__(parent)
-        # Set up the user interface from Designer.
-        # After setupUI you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
-        #self.init_param()
         self.setupUi(self)
         self.pluginPath = pluginPath
         self.comboBoxDistance.addItem(u"LSOM")
@@ -52,17 +47,27 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.comboBoxDistance.addItem(u"Vlastní")
         self.comboBoxFriction.addItem(u"Pastorková")
         self.comboBoxFriction.addItem(u"Vlastní")
+        #Fills tables with distances
         self.fillTableWidgetDistance("/grass/distancesLSOM.txt", self.tableWidgetDistancesLSOM)
         self.fillTableWidgetDistance("/grass/distancesHill.txt", self.tableWidgetDistancesHill)
         self.fillTableWidgetDistance("/grass/distancesUK.txt", self.tableWidgetDistancesUK)
         self.fillTableWidgetDistance("/grass/distancesUser.txt", self.tableWidgetDistancesUser)
+        #Fills table with search units
         self.fillTableWidgetUnits("/grass/units.txt", self.tableWidgetUnits)
+        #Fills textEdit with SearchID
+        self.fillLineEdit("/grass/searchid.txt", self.lineEditSearchID)
         self.buttonBox.accepted.connect(self.accept)
 
+    def fillLineEdit(self, fileName, lineEdit):
+        searchID = open(self.pluginPath + fileName, 'r').read()
+        lineEdit.setText(searchID)
+
     def fillTableWidgetUnits(self, fileName, tableWidget):
+        """Fills table with units"""
         tableWidget.setHorizontalHeaderLabels([u"Počet", u"Poznámka"])
         tableWidget.setVerticalHeaderLabels([u"Pes", u"Člověk do rojnice", u"Kůň", u"Čtyřkolka", u"Vrtulník", u"Potápěč", u"Jiné"])
         tableWidget.setColumnWidth(1, 600);
+        #Reads CSV and populate the table
         with open(self.pluginPath + fileName, "rb") as fileInput:
             i=0
             for row in csv.reader(fileInput, delimiter=';'):
@@ -75,8 +80,10 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                 i=i+1
 
     def fillTableWidgetDistance(self, fileName, tableWidget):
+        """Fills table with distances"""
         tableWidget.setHorizontalHeaderLabels(['10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '95%'])
         tableWidget.setVerticalHeaderLabels([u"Dítě 1-3", u"Dítě 4-6", u"Dítě 7-12", u"Dítě 13-15", u"Deprese", u"Psychická nemoc", u"Retardovaný", u"Alzheimer", u"Turista", u"Demence"])
+        # Reads CSV and populate the table
         with open(self.pluginPath + fileName, "rb") as fileInput:
             i=0
             for row in csv.reader(fileInput, delimiter=','):    
@@ -87,6 +94,8 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                 i=i+1
 
     def accept(self):
+        """Writes settings to the appropriate files"""
+        #Distances are fixed, but the user can change user distances, so only the one table is written
         f = open(self.pluginPath + '/grass/distancesUser.txt', 'w')
         for i in range(0, 10):
             for j in range(0, 9):
@@ -99,6 +108,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                     f.write("," + value)
             f.write("\n")
         f.close()
+        #Units can be changes so the units.txt is written
         f = io.open(self.pluginPath + '/grass/units.txt', 'w', encoding='utf-8')
         for i in range(0, 7):
             for j in range(0, 2):
@@ -112,6 +122,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                     f.write(u";" + unicode_value)
             f.write(u"\n")
         f.close()
+        #According to the selected distances combo is copied one of the distances file to the distances.txt
         if self.comboBoxDistance.currentIndex() == 0:
             shutil.copy (self.pluginPath + "/grass/distancesLSOM.txt", self.pluginPath + "/grass/distances.txt")
 
@@ -124,8 +135,13 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         if self.comboBoxDistance.currentIndex() == 3:
             shutil.copy (self.pluginPath + "/grass/distancesUser.txt", self.pluginPath + "/grass/distances.txt")
 
+        f = open(self.pluginPath + '/grass/searchid.txt', 'w')
+        f.write(self.lineEditSearchID.text())
+        f.close()
+
 
     def if_number_get_string(self, number):
+        """Converts number to string"""
         converted_str = number
         if isinstance(number, int) or \
                 isinstance(number, float):
@@ -133,12 +149,14 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         return converted_str
 
     def get_unicode(self, strOrUnicode, encoding='utf-8'):
+        """Converts string to unicode"""
         strOrUnicode = self.if_number_get_string(strOrUnicode)
         if isinstance(strOrUnicode, unicode):
             return strOrUnicode
         return unicode(strOrUnicode, encoding, errors='ignore')
 
     def get_string(self, strOrUnicode, encoding='utf-8'):
+        """Converts unicode to string"""
         strOrUnicode = self.if_number_get_string(strOrUnicode)
         if isinstance(strOrUnicode, unicode):
             return strOrUnicode.encode(encoding)

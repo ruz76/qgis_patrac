@@ -1,4 +1,4 @@
-2;K psovi se samozřejmě počítá psovod
+4;K psovi se samozřejmě počítá psovod
 60;Nemusí jít jen o rojnici
 0;Kůň obvykle nebude. Zatím s ním stejně neumíme počítat.
 0;Čtyřkolka obvykle nebude. Zatím s ním stejně neumíme počítat.

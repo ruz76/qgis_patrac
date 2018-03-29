@@ -46,10 +46,11 @@ from dateutil import tz
 from dateutil import parser
 from dateutil.tz import tzutc, tzlocal
 
+#If on windows
 try:
     import win32api
 except:
-    QgsMessageLog.logMessage(u"Linux - no win api", "Import GPX")
+    QgsMessageLog.logMessage(u"Linux - no win api", "Patrac")
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'gpx.ui'))
@@ -62,15 +63,22 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         self.pluginPath = pluginPath
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
+        self.path = '/media/gpx/Garmin/GPX/*/*.gpx'
         self.DATAPATH = DATAPATH
         self.buttonBoxTime.accepted.connect(self.acceptTime)
         self.buttonBoxAll.accepted.connect(self.acceptAll)
+        #Fills the table with names and times from sectors.txt
         self.fillTableWidgetSectors("/search/sectors.txt", self.tableWidgetSectors)
         self.fillListViewTracks()
         today = datetime.today()
+        #Set name for output file when groupped GPX together
+        #name is based on day and time
         self.lineEditName.setText(today.strftime('den%d_cas%H_%M'))
 
     def fillTableWidgetSectors(self, fileName, tableWidget):
+        """Fills table with search sectors
+           The table is used for cut of GPX according to time.
+        """
         tableWidget.setHorizontalHeaderLabels(['ID', 'Od', 'Do'])
         with open(self.DATAPATH + fileName, "rb") as fileInput:
             i=0
@@ -84,6 +92,7 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         #tableWidget.rowCount = 3
 
     def getDrive(self):
+        """Shows list of Windows drives"""
         drives = win32api.GetLogicalDriveStrings()
         drives = drives.split('\000')[:-1]
         items = ("D:", "E:", "F:", "G:", "H:", "I:")
@@ -96,40 +105,54 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
 
 
     def fillListViewTracks(self):
+        """Fills list with tracks"""
         if os.path.isfile(self.DATAPATH + '/search/temp/list.csv'):
             os.remove(self.DATAPATH + '/search/temp/list.csv')
-        path = '/media/gpx/Garmin/GPX/*/*.gpx'
+        #For Linux is path set just for testing purposes
+        #TODO - change to have real connected devices
+        #If Windows
         if sys.platform.startswith('win'):
+            #Get drive from user select
             drive = self.getDrive()
+            #If not selected than C:, that should be always present
             if drive is None:
                 drive = "C:/"
-                QgsMessageLog.logMessage(u"Nebyl vybrán žádný disk, vybírám C:", "Import GPX")
-            path = drive[:-1] + '/Garmin/GPX/*/*.gpx'
+                QgsMessageLog.logMessage(u"Nebyl vybrán žádný disk, vybírám C:", "Patrac")
+            #TODO - do it better to handle another devices than Garmin
+            self.path = drive[:-1] + '/Garmin/GPX/*/*.gpx'
         #for f in glob.iglob('E:/Garmin/GPX/*/*.gpx'):  # generator, search immediate subdirectories
         i = 0
-        for f in iglob(path):
+        for f in iglob(self.path):
             #copyfile(f, self.DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
+            #First copy original file to search/gpx/ directory
             shutil.copyfile(f, self.DATAPATH + '/search/gpx/' + os.path.basename(f))
+            #Then copy the same file to search/tem/ directory and name it according to position in list
             shutil.copyfile(f, self.DATAPATH + '/search/temp/' + str(i) + '.gpx')
+            #Run transformation to get time extent of the GPX
+            #Extent is added to search/temp/list.csv
             if sys.platform.startswith('win'):
+                QgsMessageLog.logMessage(str(f), "Patrac")
                 p = subprocess.Popen((self.pluginPath + '/xslt/run_xslt_extent.bat', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
                 p.wait()
             else:
-                QgsMessageLog.logMessage(str(f), "XSLT")
+                QgsMessageLog.logMessage(str(f), "Patrac")
                 p = subprocess.Popen(('bash', self.pluginPath + '/xslt/run_xslt_extent.sh', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
                 p.wait()
             i=i+1
 
+        #if some GPX were found
         if os.path.isfile(self.DATAPATH + '/search/temp/list.csv'):
             self.listViewModel = QStandardItemModel()
             from_zone = tz.tzutc()
             to_zone = tz.tzlocal()
+            #Loop via GPX tracks
             with open(self.DATAPATH + '/search/temp/list.csv') as fp:
                 for cnt, line in enumerate(fp):
                     track = u'Track ' + str(cnt) + ' '
                     items = line.split(';')
                     start = ''
                     end = ''
+                    #This is some workatound, becaouse the list can contain more than one time information for each track
                     if len(items[0]) > 30:
                         items2 = items[0].split(' ')
                         #track+= "L " + str(local) + "U: " + items2[0]
@@ -140,6 +163,7 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                     else:
                         start = items[0]
                         end = items[1]
+                    #Convert to local time zone from UTC
                     start_local = self.iso_time_to_local(start)
                     end_local = self.iso_time_to_local(end)
                     track += '(' + start_local + ' <-> ' + end_local + ')'
@@ -151,15 +175,20 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                     #print("Line {}: {}".format(cnt, line))
             self.listViewTracks.setModel(self.listViewModel)
         else:
-            QgsMessageLog.logMessage(u"Nebyl nalezen žádný záznam:", "Import GPX")
+            QgsMessageLog.logMessage(u"Nebyl nalezen žádný záznam:", "Patrac")
 
     def iso_time_to_local(self, iso):
+        """COnverts UTC to local time zone"""
         when = parser.parse(iso)
         local = when.astimezone(tzlocal())
         local_str = local.strftime("%Y-%m-%d %H:%M")
         return local_str
 
     def addToMap(self, input, SECTOR):
+        """Converts track to SHP and adds it to the map
+           Uses XSLT and GRASS to do it.
+           TODO - do it faster to remove GRASS from process
+        """
         if sys.platform.startswith('win'):
             p = subprocess.Popen((self.pluginPath + "/grass/run_gpx_no_time.bat", self.DATAPATH, self.pluginPath, input, SECTOR))
             p.wait()
@@ -180,6 +209,7 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
             QgsMapLayerRegistry.instance().addMapLayer(vector)
 
     def acceptAll(self):
+        """Creates groupped version of GPX tracks"""
         if os.path.isfile(self.DATAPATH + '/search/temp/grouped.csv'):
             os.remove(self.DATAPATH + '/search/temp/grouped.csv')
 
@@ -191,7 +221,7 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         i = 0
         while self.listViewModel.item(i):
             if self.listViewModel.item(i).checkState() == Qt.Checked:
-                QgsMessageLog.logMessage("ID: " + str(i), "GPX")
+                QgsMessageLog.logMessage("ID: " + str(i), "Patrac")
                 if sys.platform.startswith('win'):
                     p = subprocess.Popen((self.pluginPath + "/xslt/run_xslt_no_time.bat", self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/' + str(i) + '.csv'))
                     p.wait()
@@ -204,7 +234,7 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         grouped.close()
 
         if self.checkBoxGroup.isChecked() == True:
-            QgsMessageLog.logMessage("Check", "GPX")
+            QgsMessageLog.logMessage("GPX Check", "Patrac")
             self.addToMap(self.DATAPATH + '/search/temp/grouped.csv', SECTOR)
         else:
             i = 0
@@ -212,10 +242,11 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                 if self.listViewModel.item(i).checkState() == Qt.Checked:
                     self.addToMap(self.DATAPATH + '/search/temp/' + str(i) + '.csv', SECTOR + '_' + str(i))
                 i += 1
-            QgsMessageLog.logMessage("NoCheck", "GPX")
+            QgsMessageLog.logMessage("GPX NoCheck", "Patrac")
         #QgsMessageLog.logMessage("Accept", "All")
 
     def acceptTime(self):
+        """Cuts records accroding to the times specified in tableWidgetSectors"""
         #QgsMessageLog.logMessage("Accept", "A")
         SECTOR = 'K1'
         DATEFROM = '2017-06-07T15:10:00Z'
@@ -231,10 +262,10 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         value = self.tableWidgetSectors.item(0, 0).text()
         
         if sys.platform.startswith('win'):
-            p = subprocess.Popen((self.pluginPath + "/grass/run_gpx.bat", self.DATAPATH, self.pluginPath, SECTOR, DATEFROM, DATETO))
+            p = subprocess.Popen((self.pluginPath + "/grass/run_gpx.bat", self.DATAPATH, self.pluginPath, SECTOR, DATEFROM, DATETO, self.path))
             p.wait()
         else:
-            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_gpx.sh", self.DATAPATH, self.pluginPath, SECTOR, DATEFROM, DATETO))
+            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_gpx.sh", self.DATAPATH, self.pluginPath, SECTOR, DATEFROM, DATETO, self.path))
             p.wait()
 
         qml = open(self.DATAPATH + '/search/shp/style.qml', 'r').read()

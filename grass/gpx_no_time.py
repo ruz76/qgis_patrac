@@ -109,29 +109,38 @@ gsetup.init(gisbase,
 INPUT=str(sys.argv[3])
 SECTOR=str(sys.argv[4])
 
+#Converts GPX named by SECTOR to SHP
 if not os.path.exists(DATAPATH + '/search/gpx/' + SECTOR):
     os.makedirs(DATAPATH + '/search/gpx/' + SECTOR)
 
+#Reads header of GML
 header = io.open(PLUGINPATH + '/xslt/gml_header.gml', encoding='utf-8', mode='r').read()
+#Writes header to out_polyline.gml
 f = io.open(DATAPATH + '/search/temp/out_polyline.gml', encoding='utf-8', mode='w')
 f.write(header)
 f.write(u'<gml:featureMember>\n')
 f.write(u'<ogr:sample fid="sample.0">\n')
 f.write(u'<ogr:geometryProperty><gml:LineString><gml:coordinates>\n')
         
-
+#Reads CVS created by XSTL
 with open(INPUT) as csvDataFile:
     csvReader = csv.reader(csvDataFile, delimiter=';')
     for row in csvReader:
-        ##print(row)    
+        ##print(row)
+        #For each row creates one point in polyline
         f.write(row[1] + u',' + row[0] + u' ')
 
+#Finished the polyline
 f.write(u'</gml:coordinates></gml:LineString></ogr:geometryProperty>\n')
+#Finishes the feature
 f.write(u'<ogr:cat>13</ogr:cat>\n')
 f.write(u'</ogr:sample>\n')
 f.write(u'</gml:featureMember>\n')
+#Finished the GML
 f.write(u'</ogr:FeatureCollection>')
 f.close()
 
+#Imports GML to GRASSS
 print gscript.read_command('v.in.ogr', input=DATAPATH + '/search/temp/out_polyline.gml', output='out_polyline', flags='o', overwrite=True)
+#Exports SHP from imported GML
 print gscript.read_command('v.out.ogr', input='out_polyline', output=DATAPATH + '/search/shp/' + SECTOR + '.shp', overwrite=True)
