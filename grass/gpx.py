@@ -7,6 +7,7 @@ import subprocess
 import csv
 import io
 from shutil import copyfile
+import fnmatch
 
 #Jen test zda to bezi
 #f = open('/tmp/test.txt', 'w')
@@ -106,11 +107,10 @@ gsetup.init(gisbase,
 #gscript.message('Current GRASS GIS 7 environment:')
 #print gscript.gisenv()
 
-INPUT=str(sys.argv[3])
-SECTOR=str(sys.argv[4])
-DATEFROM=str(sys.argv[5])
-DATETO=str(sys.argv[6])
-PATH=str(sys.argv[7])
+SECTOR=str(sys.argv[3])
+DATEFROM=str(sys.argv[4])
+DATETO=str(sys.argv[5])
+PATH=str(sys.argv[6])
 
 #Creates output directory
 if not os.path.exists(DATAPATH + '/search/gpx/' + SECTOR):
@@ -121,34 +121,58 @@ if os.path.isfile(DATAPATH + '/search/temp/out.csv'):
     os.remove(DATAPATH + '/search/temp/out.csv')
 
 #Path to GPX is send as parameter
-for f in glob.iglob(PATH): # generator, search immediate subdirectories
-    print f
-    #Copy original files
-    copyfile(f, DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
-    #Extracts from file records in time extent
-    p = subprocess.Popen((PLUGINPATH + '/xslt/run_xslt.bat', PLUGINPATH, f, DATAPATH + '/search/temp/out.csv', DATEFROM, DATETO))
-    p.wait()
+print DATAPATH + '/search/temp'
+for root, dirnames, filenames in os.walk(DATAPATH + '/search/temp'):
+    for f in fnmatch.filter(filenames, '*.gpx'):
+        print f
+        if os.path.isfile(os.path.join(root, f.decode('utf8'))):
+            #Copy original files
+            copyfile(os.path.join(root, f.decode('utf8')), DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
+            #Extracts from file records in time extent
+            if sys.platform.startswith('win'):
+                p = subprocess.Popen((PLUGINPATH + '/xslt/run_xslt.bat', PLUGINPATH, os.path.join(root, f.decode('utf8')), DATAPATH + '/search/temp/out.csv', DATEFROM, DATETO))
+                p.wait()
+            else:
+                p = subprocess.Popen(('bash', PLUGINPATH + '/xslt/run_xslt.sh', PLUGINPATH,
+                                      os.path.join(root, f.decode('utf8')), DATAPATH + '/search/temp/out.csv', DATEFROM,
+                                      DATETO))
+                p.wait()
 
 #Reads GML header
 header = io.open(PLUGINPATH + '/xslt/gml_header.gml', encoding='utf-8', mode='r').read()
 #Writes GML header
 f = io.open(DATAPATH + '/search/temp/out_polyline.gml', encoding='utf-8', mode='w')
 f.write(header)
-f.write(u'<gml:featureMember>\n')
-f.write(u'<ogr:sample fid="sample.0">\n')
-f.write(u'<ogr:geometryProperty><gml:LineString><gml:coordinates>\n')
-        
-#Reads all selected records and writes them as one linestring to GML
-with open(DATAPATH + '/search/temp/out.csv') as csvDataFile:
-    csvReader = csv.reader(csvDataFile, delimiter=';')
-    for row in csvReader:
-        ##print(row)    
-        f.write(row[1] + u',' + row[0] + u' ')
 
-f.write(u'</gml:coordinates></gml:LineString></ogr:geometryProperty>\n')
-f.write(u'<ogr:cat>13</ogr:cat>\n')
-f.write(u'</ogr:sample>\n')
-f.write(u'</gml:featureMember>\n')
+#Reads CVS created by XSTL
+with open(DATAPATH + '/search/temp/out.csv') as csvDataFile:
+    csvReader = csv.reader(csvDataFile, delimiter='|')
+    counterId = 0
+    for row in csvReader:
+        ##print(row)
+        #For each row creates one point in polyline
+        f.write(u'<gml:featureMember>\n')
+        f.write(u'<ogr:sample fid="segment.' + str(counterId) + '">\n')
+        f.write(u'<ogr:geometryProperty><gml:LineString><gml:coordinates>\n')
+        startTime = ""
+        endTime = ""
+        for item in row:
+            if len(item) > 10:
+                coords = item.split(";")
+                f.write(coords[1] + u',' + coords[0] + u' ')
+                if startTime == "":
+                    startTime = coords[2]
+                else:
+                    endTime = coords[2]
+        # Finished the polyline
+        f.write(u'</gml:coordinates></gml:LineString></ogr:geometryProperty>\n')
+        # Finishes the feature
+        f.write(u'<ogr:startTime>' + startTime + '</ogr:startTime>\n')
+        f.write(u'<ogr:endTime>' + endTime + '</ogr:endTime>\n')
+        f.write(u'</ogr:sample>\n')
+        f.write(u'</gml:featureMember>\n')
+        counterId += 1
+#Finished the GML
 f.write(u'</ogr:FeatureCollection>')
 f.close()
 

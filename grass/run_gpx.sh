@@ -4,4 +4,10 @@ unset PYTHONPATH
 unset GISBASE
 unset LD_LIBRARY_PATH
 #printenv
-python $2/grass/gpx.py $1 $2 $3 $4 $5 $6 $7
+echo "1: " + $1
+echo "2: " + $2
+echo "3: " + $3
+echo "4: " + $4
+echo "5: " + $5
+echo "6: " + $6
+python $2/grass/gpx.py $1 $2 $3 $4 $5 $6

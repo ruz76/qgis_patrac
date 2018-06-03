@@ -62,11 +62,19 @@ class Ui_Coords(QtGui.QDialog, FORM_CLASS):
         self.lineEditX.setText(str(self.center.x()))
         self.lineEditY.setText(str(self.center.y()))
         source_crs = QgsCoordinateReferenceSystem(5514)
+
         dest_crs = QgsCoordinateReferenceSystem(4326)
         transform = QgsCoordinateTransform(source_crs, dest_crs)
         xyWGS = transform.transform(self.center.x(), self.center.y())
         self.lineEditLon.setText(str(xyWGS.x()))
         self.lineEditLat.setText(str(xyWGS.y()))
+
+        dest_crs = QgsCoordinateReferenceSystem(32633)
+        transform = QgsCoordinateTransform(source_crs, dest_crs)
+        xyUTM = transform.transform(self.center.x(), self.center.y())
+        self.lineEditUTMX.setText(str(xyUTM.x()))
+        self.lineEditUTMY.setText(str(xyUTM.y()))
+
 
     def setCenter(self, center):
         self.center = center

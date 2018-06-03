@@ -45,6 +45,7 @@ from datetime import datetime
 from dateutil import tz
 from dateutil import parser
 from dateutil.tz import tzutc, tzlocal
+import fnmatch
 
 #If on windows
 try:
@@ -63,7 +64,8 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         self.pluginPath = pluginPath
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
-        self.path = '/media/gpx/Garmin/GPX/*/*.gpx'
+        #self.path = '/media/gpx'
+        self.path = '/media/gpx/GARMIN'
         self.DATAPATH = DATAPATH
         self.buttonBoxTime.accepted.connect(self.acceptTime)
         self.buttonBoxAll.accepted.connect(self.acceptAll)
@@ -106,8 +108,10 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
 
     def fillListViewTracks(self):
         """Fills list with tracks"""
-        if os.path.isfile(self.DATAPATH + '/search/temp/list.csv'):
-            os.remove(self.DATAPATH + '/search/temp/list.csv')
+        files = glob(self.DATAPATH + '/search/temp/*')
+        for f in files:
+            if os.path.isfile(f):
+                os.remove(f)
         #For Linux is path set just for testing purposes
         #TODO - change to have real connected devices
         #If Windows
@@ -119,26 +123,40 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                 drive = "C:/"
                 QgsMessageLog.logMessage(u"Nebyl vybrán žádný disk, vybírám C:", "Patrac")
             #TODO - do it better to handle another devices than Garmin
-            self.path = drive[:-1] + '/Garmin/GPX/*/*.gpx'
+            self.path = drive[:-1] + '/'
         #for f in glob.iglob('E:/Garmin/GPX/*/*.gpx'):  # generator, search immediate subdirectories
         i = 0
-        for f in iglob(self.path):
-            #copyfile(f, self.DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
-            #First copy original file to search/gpx/ directory
-            shutil.copyfile(f, self.DATAPATH + '/search/gpx/' + os.path.basename(f))
-            #Then copy the same file to search/tem/ directory and name it according to position in list
-            shutil.copyfile(f, self.DATAPATH + '/search/temp/' + str(i) + '.gpx')
-            #Run transformation to get time extent of the GPX
-            #Extent is added to search/temp/list.csv
-            if sys.platform.startswith('win'):
-                QgsMessageLog.logMessage(str(f), "Patrac")
-                p = subprocess.Popen((self.pluginPath + '/xslt/run_xslt_extent.bat', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
-                p.wait()
-            else:
-                QgsMessageLog.logMessage(str(f), "Patrac")
-                p = subprocess.Popen(('bash', self.pluginPath + '/xslt/run_xslt_extent.sh', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
-                p.wait()
-            i=i+1
+        for root, dirnames, filenames in os.walk(self.path):
+            for f in fnmatch.filter(filenames, '*.gpx'):
+            #for f in iglob(self.path, recursive=True):
+                #copyfile(f, self.DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
+                #First copy original file to search/gpx/ directory
+                shutil.copyfile(os.path.join(root, f.decode('utf8')), self.DATAPATH + '/search/gpx/' + os.path.basename(f.decode('utf8')))
+                #Then copy the same file to search/tem/ directory and name it according to position in list
+                shutil.copyfile(os.path.join(root, f.decode('utf8')), self.DATAPATH + '/search/temp/' + str(i) + '.gpx')
+                #Notice size of list.csv
+                listSize = 0
+                if i > 0:
+                    listSize = os.path.getsize(self.DATAPATH + '/search/temp/list.csv')
+                #Run transformation to get time extent of the GPX
+                #Extent is added to search/temp/list.csv
+                if sys.platform.startswith('win'):
+                    QgsMessageLog.logMessage(str(f), "Patrac")
+                    p = subprocess.Popen((self.pluginPath + '/xslt/run_xslt_extent.bat', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
+                    p.wait()
+                else:
+                    QgsMessageLog.logMessage(str(f), "Patrac")
+                    p = subprocess.Popen(('bash', self.pluginPath + '/xslt/run_xslt_extent.sh', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
+                    p.wait()
+                i=i+1
+                listSizeAfterXSLT = os.path.getsize(self.DATAPATH + '/search/temp/list.csv')
+                if listSize == listSizeAfterXSLT:
+                    #Something bad happend with XSLT
+                    #Add empty row to /search/temp/list.csv'
+                    listFile = open(self.DATAPATH + '/search/temp/list.csv', 'w+')
+                    listFile.write(";\n")
+                    listFile.close()
+
 
         #if some GPX were found
         if os.path.isfile(self.DATAPATH + '/search/temp/list.csv'):
@@ -155,24 +173,31 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                     #This is some workatound, becaouse the list can contain more than one time information for each track
                     if len(items[0]) > 30:
                         items2 = items[0].split(' ')
-                        #track+= "L " + str(local) + "U: " + items2[0]
                         start = items2[0]
-                        items2 = items[1].split(' ')
-                        end = items2[0]
-                        #track += u' Konec: ' + items2[0]
                     else:
                         start = items[0]
+
+                    if len(items[1]) > 30:
+                        items2 = items[1].split(' ')
+                        end = items2[len(items2) - 1]
+                    else:
                         end = items[1]
-                    #Convert to local time zone from UTC
-                    start_local = self.iso_time_to_local(start)
-                    end_local = self.iso_time_to_local(end)
-                    track += '(' + start_local + ' <-> ' + end_local + ')'
-                    item = QStandardItem(track)
-                    #check = Qt.Checked if randint(0, 1) == 1 else Qt.Unchecked
-                    #item.setCheckState(check)
-                    item.setCheckable(True)
-                    self.listViewModel.appendRow(item)
-                    #print("Line {}: {}".format(cnt, line))
+
+                    if len(start) > 10 and len(end) > 10:
+                        #Convert to local time zone from UTC
+                        start_local = self.iso_time_to_local(start)
+                        end_local = self.iso_time_to_local(end)
+                        track += '(' + start_local + ' <-> ' + end_local + ')'
+                        item = QStandardItem(track)
+                        #check = Qt.Checked if randint(0, 1) == 1 else Qt.Unchecked
+                        #item.setCheckState(check)
+                        item.setCheckable(True)
+                        self.listViewModel.appendRow(item)
+                    else:
+                        item = QStandardItem("Another Type of GPX")
+                        item.setCheckable(False)
+                        self.listViewModel.appendRow(item)
+                        #print("Line {}: {}".format(cnt, line))
             self.listViewTracks.setModel(self.listViewModel)
         else:
             QgsMessageLog.logMessage(u"Nebyl nalezen žádný záznam:", "Patrac")
@@ -204,9 +229,12 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
 
         vector = QgsVectorLayer(self.DATAPATH + '/search/shp/' + SECTOR + '.shp', SECTOR, "ogr")
         if not vector.isValid():
-            print "Layer " + self.DATAPATH + '/search/shp/' + SECTOR + '.shp' + " failed to load!"
+            QgsMessageLog.logMessage("Layer " + self.DATAPATH + '/search/shp/' + SECTOR + '.shp' + " failed to load!", "Patrac")
         else:
-            QgsMapLayerRegistry.instance().addMapLayer(vector)
+            if vector.featureCount() > 0:
+                QgsMapLayerRegistry.instance().addMapLayer(vector)
+            else:
+                QMessageBox.information(None, "INFO:", u"Soubory GPX neobsahují žádné stopy.")
 
     def acceptAll(self):
         """Creates groupped version of GPX tracks"""
@@ -218,6 +246,13 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         SECTOR = self.lineEditName.text()
         if not os.path.exists(self.DATAPATH + '/search/gpx/' + SECTOR):
             os.makedirs(self.DATAPATH + '/search/gpx/' + SECTOR)
+
+        #TODO fix move of the files with unicode names
+        #for f in glob(self.DATAPATH + '/search/gpx/*.gpx'):
+            #QgsMessageLog.logMessage(f.decode('utf8'), "Patrac")
+            #print self.DATAPATH.decode('utf8') + u'/search/gpx/' + SECTOR.decode('utf8') + u'/' + os.path.basename(f.decode('utf8'))
+            #shutil.move(f.decode('utf8'), self.DATAPATH.decode('utf8') + u'/search/gpx/' + SECTOR.decode('utf8') + u'/' + os.path.basename(f.decode('utf8')))
+
         i = 0
         while self.listViewModel.item(i):
             if self.listViewModel.item(i).checkState() == Qt.Checked:
@@ -276,6 +311,9 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
 
         vector = QgsVectorLayer(self.DATAPATH + '/search/shp/' + SECTOR + '.shp', SECTOR, "ogr")
         if not vector.isValid():
-            print "Layer " + self.DATAPATH + '/search/shp/' + SECTOR + '.shp' + " failed to load!"
+            QgsMessageLog.logMessage("Layer " + self.DATAPATH + '/search/shp/' + SECTOR + '.shp' + " failed to load!", "Patrac")
         else:
-            QgsMapLayerRegistry.instance().addMapLayer(vector)        
+            if vector.featureCount() > 0:
+                QgsMapLayerRegistry.instance().addMapLayer(vector)
+            else:
+                QMessageBox.information(None, "INFO:", u"V daném období nejsou žádná data.")

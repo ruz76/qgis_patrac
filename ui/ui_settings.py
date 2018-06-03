@@ -52,6 +52,8 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.fillTableWidgetDistance("/grass/distancesHill.txt", self.tableWidgetDistancesHill)
         self.fillTableWidgetDistance("/grass/distancesUK.txt", self.tableWidgetDistancesUK)
         self.fillTableWidgetDistance("/grass/distancesUser.txt", self.tableWidgetDistancesUser)
+        # Fills table with friction values
+        self.fillTableWidgetFriction("/grass/friction.csv", self.tableWidgetFriction)
         #Fills table with search units
         self.fillTableWidgetUnits("/grass/units.txt", self.tableWidgetUnits)
         #Fills textEdit with SearchID
@@ -61,6 +63,23 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
     def fillLineEdit(self, fileName, lineEdit):
         searchID = open(self.pluginPath + fileName, 'r').read()
         lineEdit.setText(searchID)
+
+    def fillTableWidgetFriction(self, fileName, tableWidget):
+        """Fills table with units"""
+        tableWidget.setHorizontalHeaderLabels([u"ID", u"Čas (10m)", u"KOD", u"Popis", u"Poznámka"])
+        tableWidget.setColumnWidth(3, 300);
+        tableWidget.setColumnWidth(4, 300);
+        #Reads CSV and populate the table
+        with open(self.pluginPath + fileName, "rb") as fileInput:
+            i=0
+            for row in csv.reader(fileInput, delimiter=';'):
+                j=0
+                unicode_row = [x.decode('utf8') for x in row]
+                #yield row.encode('utf-8')
+                for field in unicode_row:
+                    tableWidget.setItem(i, j, QtGui.QTableWidgetItem(field))
+                    j=j+1
+                i=i+1
 
     def fillTableWidgetUnits(self, fileName, tableWidget):
         """Fills table with units"""

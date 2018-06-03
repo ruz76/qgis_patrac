@@ -5,7 +5,6 @@ import os
 import sys
 import subprocess
 import math
-import webbrowser
 import io
 import csv
 
@@ -106,6 +105,9 @@ gsetup.init(gisbase,
 PLUGIN_PATH=str(sys.argv[2]) 
 COUNT=int(sys.argv[3])
 print "COUNT: " + str(COUNT)
+AREAS=str(sys.argv[4])
+AREASITEMS=AREAS.split('!')
+
 #Imports sektory_group_selected.shp to grass layer sektory_group_selected_modified (may be modified by user)
 print gscript.read_command('v.import', input=DATAPATH + '/pracovni/sektory_group_selected.shp', layer='sektory_group_selected', output='sektory_group_selected_modified', overwrite=True)
 
@@ -115,24 +117,18 @@ SUM_POCET_PT = 0
 SUM_POCET_VPT = 0
 SUM_POCET_PT_ALT = 0
 
-#Reads header of report
-header = io.open(DATAPATH + '/pracovni/report_header.html', encoding='utf-8', mode='r').read()
-#Writes header to report
-f = io.open(DATAPATH + '/pracovni/report.html', encoding='utf-8', mode='w')
-f.write(header)
-f.write(u'<h1>REPORT</h1>\n')
-
 #Loops via all selected search sectors based on number of sectors
 for i in xrange(1, COUNT+1):
     print i
+    f = io.open(DATAPATH + '/pracovni/report.html.' + str(i), encoding='utf-8', mode='w')
     #vybrani jednoho sektoru dle poradi
     #Selects one sector based on order (attribute cats is from 1 to number of items)
-    print gscript.read_command('v.extract', input='sektory_group_selected_modified', output='sektory_group_selected_modified_' + str(i), where="cat='"+str(i)+"'", overwrite=True)
+    #print gscript.read_command('v.extract', input='sektory_group_selected_modified', output='sektory_group_selected_modified_' + str(i), where="cat='"+str(i)+"'", overwrite=True)
     #ziskani atributu plocha a label
     #Gets attribute plocha (area) and label
-    VALUES=gscript.read_command('v.db.select', map='sektory_group_selected_modified_' + str(i), columns='label,area_ha', flags="c")
+    #VALUES=gscript.read_command('v.db.select', map='sektory_group_selected_modified_' + str(i), columns='label,area_ha', flags="c")
     #Pipe is delimiter of v.db.select output
-    VALUESITEMS=VALUES.split('|')
+    #VALUESITEMS=VALUES.split('|')
 
     #zamaskovani rastru s vyuzitim polygonu sektoru
     #Mask working area based on are of current sector
@@ -141,13 +137,6 @@ for i in xrange(1, COUNT+1):
     #ziskani reportu - procenta ploch v sektoru
     #Gets stats for landuse areas in masked region
     REPORT=gscript.read_command('r.stats', input='landuse', separator='pipe', flags='pln')
-    f.write(u"<hr/>\n")
-
-    #Prints previously obtained area and label of the sector
-    f.write(u"<h2>SEKTOR " + str(VALUESITEMS[0]) + "</h2>\n")
-    f.write(u"<p>PLOCHA " + str(int(VALUESITEMS[1])) + " ha</p>\n")
-    f.write(u"<h3>Typy povrchu</h3>\n")
-
     #Sets areas of types of areas to zero
     #TODO - vyjasnit zarazeni typu + mozna pouzit i letecke snimky - nejaká jednoduchá automaticka rizena klasifikace
     P1=0 #volny schudny bez porostu (louky, pole ) - nejsem schopen zatim z dat identifikovat, mozna dle data patrani, v zime bude pole bez porostu a louka asi taky
@@ -238,6 +227,26 @@ for i in xrange(1, COUNT+1):
         if REPORTITEMVALUES[0] == '115': #115:Vinice (VINICE)
             P4 = P4 + float(REPORTITEMVALUES[2].split('%')[0])
 
+    #Corect 100%
+    if P1 > 100:
+        P1 = 100
+    if P2 > 100:
+        P2 = 100
+    if P3 > 100:
+        P3 = 100
+    if P4 > 100:
+        P4 = 100
+    if P5 > 100:
+        P5 = 100
+    if P6 > 100:
+        P6 = 100
+    if P7 > 100:
+        P7 = 100
+    if P8 > 100:
+        P8 = 100
+    if P9 > 100:
+        P9 = 100
+
     #Writes output to the report
     f.write(u"<ul>\n")
     f.write(u"<li>volný schůdný bez porostu: " + str(P1) + " %</li>\n")
@@ -258,27 +267,27 @@ for i in xrange(1, COUNT+1):
     POCET_KPT_ALT = 0
 
     #For each type of area is counted number of necessary search units
-    POCET_KPT = POCET_KPT + (((int(VALUESITEMS[1]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
-    POCET_KPT_ALT = POCET_KPT_ALT + (((int(VALUESITEMS[1]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
-    POCET_PT_ALT = POCET_PT_ALT + (((int(VALUESITEMS[1]) / 100.0) * P1) / 30.0) #30 je plocha pro hledani jednim tymem
+    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
+    POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
+    POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P1) / 30.0) #30 je plocha pro hledani jednim tymem
 
-    POCET_KPT = POCET_KPT + (((int(VALUESITEMS[1]) / 100.0) * P2) / 30.0) #30 je plocha pro hledani jednim tymem
+    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P2) / 30.0) #30 je plocha pro hledani jednim tymem
 
-    POCET_KPT = POCET_KPT + (((int(VALUESITEMS[1]) / 100.0) * P3) / 20.0) #20 je plocha pro hledani jednim tymem
+    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P3) / 20.0) #20 je plocha pro hledani jednim tymem
 
-    POCET_KPT = POCET_KPT + (((int(VALUESITEMS[1]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
-    POCET_PT_ALT = POCET_PT_ALT + (((int(VALUESITEMS[1]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
-    POCET_KPT_ALT = POCET_KPT_ALT + (((int(VALUESITEMS[1]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
+    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
+    POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
+    POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
     
-    POCET_KPT = POCET_KPT + (((int(VALUESITEMS[1]) / 100.0) * P5) / 20.0) #20 je plocha pro hledani jednim tymem
+    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P5) / 20.0) #20 je plocha pro hledani jednim tymem
 
-    POCET_PT = POCET_PT + (((int(VALUESITEMS[1]) / 100.0) * P6) / 5.0) #5 je plocha pro hledani jednim tymem
+    POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P6) / 5.0) #5 je plocha pro hledani jednim tymem
 
-    POCET_PT = POCET_PT + (((int(VALUESITEMS[1]) / 100.0) * P7) / 15.0) #15 je plocha pro hledani jednim tymem
+    POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P7) / 15.0) #15 je plocha pro hledani jednim tymem
 
-    POCET_KPT = POCET_KPT + (((int(VALUESITEMS[1]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
-    POCET_KPT_ALT = POCET_KPT_ALT + (((int(VALUESITEMS[1]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
-    POCET_PT_ALT = POCET_PT_ALT + (((int(VALUESITEMS[1]) / 100.0) * P8) / 15.0) #15 je plocha pro hledani jednim tymem
+    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
+    POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
+    POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P8) / 15.0) #15 je plocha pro hledani jednim tymem
 
     POCET_VPT = 0
     if P9 > 0:
@@ -286,18 +295,25 @@ for i in xrange(1, COUNT+1):
 
     #Writes to the report
     f.write(u"\n<h3>Nasazení</h3>\n");
-    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_KPT)) + u" Kynologických pátracích týmů (KPT) k propátraní do 3 hodin</p>\n");
-    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_PT)) + u" Pátracích týmů (PT) s dvaceti členy k propátraní do 3 hodin</p>\n");
-    f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_VPT)) + u" Vodních pátracích týmů (VPT) k propátraní do 3 hodin</p>\n");
-    f.write(u"<p>Je možné nahradit " + str(math.ceil(POCET_KPT_ALT)) + u" KPT " + str(math.ceil(POCET_PT_ALT)) + u" PT</p>\n");
+    if math.ceil(POCET_KPT) > 0:
+        f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_KPT)) + u" Kynologických pátracích týmů (KPT) k propátraní do 3 hodin</p>\n");
+        f.write(u"<p>Je možné nahradit " + str(math.ceil(POCET_KPT_ALT)) + u" KPT " + str(
+            math.ceil(POCET_PT_ALT)) + u" PT</p>\n");
+    if math.ceil(POCET_PT) > 0:
+        f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_PT)) + u" Pátracích týmů (PT) s dvaceti členy k propátraní do 3 hodin</p>\n");
+    if math.ceil(POCET_VPT) > 0:
+        f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_VPT)) + u" Vodních pátracích týmů (VPT) k propátraní do 3 hodin</p>\n");
 
     #export do SHP s nazvem dle atributu label
     #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/', output_layer=str(VALUESITEMS[0]), output_type='line' overwrite=True)
     #Adds information from report to attribute of the layer
-    print gscript.read_command('v.db.addcolumn', map='sektory_group_selected_modified_' + str(i), columns='report varchar(255)')
-    print gscript.read_command('v.db.update', map='sektory_group_selected_modified_' + str(i), layer='1', column='report', value='KPT=' + str(math.ceil(POCET_KPT)) + ', PT='+ str(math.ceil(POCET_PT)) + ', VPT=' + str(math.ceil(POCET_VPT)) + ', APT=' + str(math.ceil(POCET_PT_ALT)))
+    #print gscript.read_command('v.db.addcolumn', map='sektory_group_selected_modified_' + str(i), columns='report varchar(255)')
+    #print gscript.read_command('v.db.update', map='sektory_group_selected_modified_' + str(i), layer='1', column='report', value='KPT=' + str(math.ceil(POCET_KPT)) + ', PT='+ str(math.ceil(POCET_PT)) + ', VPT=' + str(math.ceil(POCET_VPT)) + ', APT=' + str(math.ceil(POCET_PT_ALT)))
+    funits = io.open(DATAPATH + '/pracovni/report.html.units.' + str(i), encoding='utf-8', mode='w')
+    funits.write(u'KPT=' + str(math.ceil(POCET_KPT)) + u', PT='+ str(math.ceil(POCET_PT)) + u', VPT=' + str(math.ceil(POCET_VPT)) + u', APT=' + str(math.ceil(POCET_PT_ALT)))
+    funits.close()
     #Exports sector to the SHP
-    print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/'+str(VALUESITEMS[0])+'.shp', output_layer=str(VALUESITEMS[0]), output_type='line', overwrite=True)
+    #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/'+str(VALUESITEMS[0])+'.shp', output_layer=str(VALUESITEMS[0]), output_type='line', overwrite=True)
 
     #Increase the sums of number of units
     SUM_POCET_KPT += math.ceil(POCET_KPT)
@@ -305,14 +321,12 @@ for i in xrange(1, COUNT+1):
     SUM_POCET_VPT += math.ceil(POCET_VPT)
     SUM_POCET_PT_ALT += math.ceil(POCET_KPT_ALT)
 
+    f.close()
+
 #Removes mask to be ready for another calculations for whole area
 print gscript.read_command('r.mask', flags="r")
 
-#Header for search time
-f.write(u"<hr/>\n")
-f.write(u"\n<h2>Doba pro hledání</h2>\n");
-f.write(u"\n<p>Pro prohledání se počítá 3 hodiny jedním týmem</p>\n");
-
+f = io.open(DATAPATH + '/pracovni/report.html.units', encoding='utf-8', mode='w')
 #Reads numbers for existing search units from units.txt
 with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
     i=0
@@ -324,35 +338,32 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
                 cur_count = int(field)
                 j=j+1
                 #Dog
-                if i == 0: #Pes
-                    if cur_count != 0:
-                        cur_pomer = float(SUM_POCET_KPT) / float(cur_count)
-                        f.write(u"\n<p>K dispozici je " + str(cur_count) + u" KPT</p>\n");
-                        f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
-                    else:
-                        f.write(u"\n<p>K dispozici není žádný KPT. Je nutné využít náhradu.</p>\n");
+                if float(SUM_POCET_KPT) > 0:
+                    if i == 0: #Pes
+                        if cur_count != 0:
+                            cur_pomer = float(SUM_POCET_KPT) / float(cur_count)
+                            f.write(u"\n<p>K dispozici je " + str(cur_count) + u" KPT</p>\n");
+                            f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+                        else:
+                            f.write(u"\n<p>K dispozici není žádný KPT. Je nutné využít náhradu.</p>\n");
                 #Search team
-                if i == 1: #Rojnice
-                    if cur_count != 0:
-                        cur_pomer = float(SUM_POCET_PT) / (float(cur_count) / float(20))
-                        f.write(u"\n<p>K dispozici je " + str(cur_count) + u" lidí pro PT</p>\n");
-                        f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
-                        #TODO Dořešit SUM_POCET_PT_ALT
-                    else:
-                        f.write(u"\n<p>K dispozici není žádný člověk pro PT. Je nutné nějaké zajistit.</p>\n");
+                if float(SUM_POCET_PT) > 0:
+                    if i == 1: #Rojnice
+                        if cur_count != 0:
+                            cur_pomer = float(SUM_POCET_PT) / (float(cur_count) / float(20))
+                            f.write(u"\n<p>K dispozici je " + str(cur_count) + u" lidí pro PT</p>\n");
+                            f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+                            #TODO Dořešit SUM_POCET_PT_ALT
+                        else:
+                            f.write(u"\n<p>K dispozici není žádný člověk pro PT. Je nutné nějaké zajistit.</p>\n");
                 #Diver
-                if i == 5: #Potápěč
-                    if cur_count != 0:
-                        cur_pomer = float(SUM_POCET_VPT) / (float(cur_count) / float(2))
-                        f.write(u"\n<p>K dispozici je " + str(cur_count) + u" potápěčů pro VPT</p>\n");
-                        f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
-                    else:
-                        f.write(u"\n<p>K dispozici není žádný potápěč. Je nutné nějaké zajistit.</p>\n");
+                if float(SUM_POCET_VPT) > 0:
+                    if i == 5: #Potápěč
+                        if cur_count != 0:
+                            cur_pomer = float(SUM_POCET_VPT) / (float(cur_count) / float(2))
+                            f.write(u"\n<p>K dispozici je " + str(cur_count) + u" potápěčů pro VPT</p>\n");
+                            f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+                        else:
+                            f.write(u"\n<p>K dispozici není žádný potápěč. Je nutné nějaké zajistit.</p>\n");
         i=i+1
 
-#Writes footer
-footer = io.open(DATAPATH + '/pracovni/report_footer.html', encoding='utf-8', mode='r').read()
-f.write(footer)
-f.close()
-#Opens report in default browser
-webbrowser.open("file://" + DATAPATH + "/pracovni/report.html")

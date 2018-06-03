@@ -80,7 +80,16 @@ class Ui_PatracDockWidget(object):
         self.tbtnExportSectors.setIconSize(QSize(32,32));
         self.tbtnExportSectors.setFixedSize(QSize(42,42));
         self.horizontalLayoutToolbar.addWidget(self.tbtnExportSectors)
-        self.tbtnExportSectors.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Exportovat sektory", None, QtGui.QApplication.UnicodeUTF8)) 
+        self.tbtnExportSectors.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Exportovat sektory", None, QtGui.QApplication.UnicodeUTF8))
+
+        self.tbtnReportExportSectors = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnReportExportSectors.setObjectName(_fromUtf8("tbtnReportExportSectors"))
+        self.tbtnReportExportSectors.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "report_export_sectors.png")));
+        self.tbtnReportExportSectors.setIconSize(QSize(32, 32));
+        self.tbtnReportExportSectors.setFixedSize(QSize(42, 42));
+        self.horizontalLayoutToolbar.addWidget(self.tbtnReportExportSectors)
+        self.tbtnReportExportSectors.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Vytvořit report", None,
+                                                                       QtGui.QApplication.UnicodeUTF8))
 
         self.tbtnShowSettings = QtGui.QPushButton(self.dockWidgetContents)
         self.tbtnShowSettings.setObjectName(_fromUtf8("tbtnShowSettings"))  

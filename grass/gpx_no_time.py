@@ -118,24 +118,36 @@ header = io.open(PLUGINPATH + '/xslt/gml_header.gml', encoding='utf-8', mode='r'
 #Writes header to out_polyline.gml
 f = io.open(DATAPATH + '/search/temp/out_polyline.gml', encoding='utf-8', mode='w')
 f.write(header)
-f.write(u'<gml:featureMember>\n')
-f.write(u'<ogr:sample fid="sample.0">\n')
-f.write(u'<ogr:geometryProperty><gml:LineString><gml:coordinates>\n')
+
         
 #Reads CVS created by XSTL
 with open(INPUT) as csvDataFile:
-    csvReader = csv.reader(csvDataFile, delimiter=';')
+    csvReader = csv.reader(csvDataFile, delimiter='|')
+    counterId = 0
     for row in csvReader:
         ##print(row)
         #For each row creates one point in polyline
-        f.write(row[1] + u',' + row[0] + u' ')
-
-#Finished the polyline
-f.write(u'</gml:coordinates></gml:LineString></ogr:geometryProperty>\n')
-#Finishes the feature
-f.write(u'<ogr:cat>13</ogr:cat>\n')
-f.write(u'</ogr:sample>\n')
-f.write(u'</gml:featureMember>\n')
+        f.write(u'<gml:featureMember>\n')
+        f.write(u'<ogr:sample fid="segment.' + str(counterId) + '">\n')
+        f.write(u'<ogr:geometryProperty><gml:LineString><gml:coordinates>\n')
+        startTime = ""
+        endTime = ""
+        for item in row:
+            if len(item) > 10:
+                coords = item.split(";")
+                f.write(coords[1] + u',' + coords[0] + u' ')
+                if startTime == "":
+                    startTime = coords[2]
+                else:
+                    endTime = coords[2]
+        # Finished the polyline
+        f.write(u'</gml:coordinates></gml:LineString></ogr:geometryProperty>\n')
+        # Finishes the feature
+        f.write(u'<ogr:startTime>' + startTime + '</ogr:startTime>\n')
+        f.write(u'<ogr:endTime>' + endTime + '</ogr:endTime>\n')
+        f.write(u'</ogr:sample>\n')
+        f.write(u'</gml:featureMember>\n')
+        counterId += 1
 #Finished the GML
 f.write(u'</ogr:FeatureCollection>')
 f.close()
