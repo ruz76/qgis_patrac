@@ -136,7 +136,7 @@ for i in xrange(1, COUNT+1):
 
     #ziskani reportu - procenta ploch v sektoru
     #Gets stats for landuse areas in masked region
-    REPORT=gscript.read_command('r.stats', input='landuse', separator='pipe', flags='pln')
+    REPORT=gscript.read_command('r.stats', input='landuse_type', separator='pipe', flags='pln')
     #Sets areas of types of areas to zero
     #TODO - vyjasnit zarazeni typu + mozna pouzit i letecke snimky - nejaká jednoduchá automaticka rizena klasifikace
     P1=0 #volny schudny bez porostu (louky, pole ) - nejsem schopen zatim z dat identifikovat, mozna dle data patrani, v zime bude pole bez porostu a louka asi taky
@@ -148,84 +148,33 @@ for i in xrange(1, COUNT+1):
     P7=0 #mestske parky a hriste s pohybem osob - pohyb osob nejsem schopen posoudit, tedy asi co je zahrada bude bez pohybu a co je park bude s pohybem
     P8=0 #mestske parky a hriste bez osob
     P9=0 #vodni plocha
+    P10=0 #ostatni
 
     REPORTITEMS = REPORT.splitlines(False)
 
     #Decides for each type of area from REPORT in which category belongs
-    #TODO - make it on the side of GRASS - do reclass and run on landuse_types of somethin like it
-    #prepocet ploch v sektoru dle kategorii nasazeni tymu
     for REPORTITEM in REPORTITEMS:
         REPORTITEMVALUES = REPORTITEM.split('|')
-        if REPORTITEMVALUES[0] == '1': #1:Zastavena plocha (AREZAS)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '2': #2:Arealy (ARUCZA)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '3': #3:Hrbitovy (HRBITO)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '4': #4:Kolejiste (KOLEJI)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '5': #5:Letiste (LETISTE)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '6': #6:Nezjisteno (LPKOSO) - zarazeno do P1 - mozna chyba
+        if REPORTITEMVALUES[0] == '1':
             P1 = P1 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '7': #7:Louky, pastviny, kroviny (LPKROV)
-            P5 = P5 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '8': #8:Louky, pastviny, stromy (LPSTROM)
-            P4 = P4 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '9': #9:Nezjisteno (OBLEDR)
-            P1 = P1 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '10': #10:Odpocivadla (ODPOCI)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '11': #11:Orna puda (ORNAPU)
+        if REPORTITEMVALUES[0] == '2':
             P2 = P2 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '12': #12:Ostani plochy u silnic (OSPLSI)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '13': #13:Lom (POTELO)
+        if REPORTITEMVALUES[0] == '3':
             P3 = P3 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '14': #14:Nezjisteno (PRSTPR)
-            P1 = P1 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '15': #15:Sad, zahrada (SADZAH)
+        if REPORTITEMVALUES[0] == '4':
             P4 = P4 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '16': #16:Skladka (SKLADK)
-            P3 = P3 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '17': #17:Travnaty povrch (TRTRPO)
-            P1 = P1 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '18': #18:Vodni plocha (VODPLO)
-            P9 = P9 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '19': #19:Zahrady, parky (ZAHPAR)
-            P7 = P7 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '100': #100:Baziny, mocaly (BAZMOC)
-            P3 = P3 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '101': #101:Budovy, bloky budov (BUBLBU)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '102': #102:Chladici veze (CHLVEZ)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '103': #103:Chmelnice (CHMELN)
-            P4 = P4 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '104': #104:Elektrarna (ELEKTR)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '105': #105:Halda, odval (HALODV)
-            P3 = P3 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '106': #106:Skleniky (KUSLFO)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '107': #107:Raseliniste (RASELI)
-            P3 = P3 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '108': #108:Nezjisteno (ROZTRA)
-            P1 = P1 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '109': #109:Budovy (ROZZRI)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '110': #110:Sesuv (SESPUD)
-            P3 = P3 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '111': #111:Silo (SILO)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '112': #112:Obora (SKAUTV)
+        if REPORTITEMVALUES[0] == '5':
             P5 = P5 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '113': #113:Usazovaci nadrz (USNAOD)
+        if REPORTITEMVALUES[0] == '6':
             P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '114': #114:Budovy na nadrazi (VANAZA)
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
-        if REPORTITEMVALUES[0] == '115': #115:Vinice (VINICE)
-            P4 = P4 + float(REPORTITEMVALUES[2].split('%')[0])
+        if REPORTITEMVALUES[0] == '7':
+            P7 = P7 + float(REPORTITEMVALUES[2].split('%')[0])
+        if REPORTITEMVALUES[0] == '8':
+            P8 = P8 + float(REPORTITEMVALUES[2].split('%')[0])
+        if REPORTITEMVALUES[0] == '9':
+            P9 = P9 + float(REPORTITEMVALUES[2].split('%')[0])
+        if REPORTITEMVALUES[0] == '10':
+            P10 = P10 + float(REPORTITEMVALUES[2].split('%')[0])
 
     #Corect 100%
     if P1 > 100:
@@ -246,6 +195,8 @@ for i in xrange(1, COUNT+1):
         P8 = 100
     if P9 > 100:
         P9 = 100
+    if P10 > 100:
+        P10 = 100
 
     #Writes output to the report
     f.write(u"<ul>\n")
@@ -258,6 +209,7 @@ for i in xrange(1, COUNT+1):
     f.write(u"<li>městské parky a hřiště s pohybem osob: " + str(P7) + " %</li>\n")
     f.write(u"<li>městské parky a hřiště bez osob: " + str(P8) + " %</li>\n")
     f.write(u"<li>vodní plocha: " + str(P9) + " %</li>\n")
+    f.write(u"<li>ostatní plochy: " + str(P10) + " %</li>\n")
     f.write(u"</ul>\n")
 
     #Sets current number of units to zero
@@ -284,6 +236,8 @@ for i in xrange(1, COUNT+1):
     POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P6) / 5.0) #5 je plocha pro hledani jednim tymem
 
     POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P7) / 15.0) #15 je plocha pro hledani jednim tymem
+
+    POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P10) / 15.0)  # 15 je plocha pro hledani jednim tymem
 
     POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
     POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem

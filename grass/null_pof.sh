@@ -1,3 +1,4 @@
+r.mapcalc expression='coords_friction_slope=friction_slope * coords'
 r.mapcalc expression='friction_null=friction_slope';
 r.null map=friction_null null=0
 r.reclass input=friction_null output=friction_null_rec rules=-

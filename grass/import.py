@@ -118,7 +118,17 @@ print gscript.read_command('r.in.ascii', output='friction_slope', input=DATAPATH
 print gscript.read_command('r.null', map='friction_slope', null='10')
 #Imports sectors and select them according to Extent
 #Bin would be better (size is smaller, export is faster), but there are some problems with import
-print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/ZABAGED/line_x', layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True)
+
+#If the data are from ZABAGED
+if os.path.isfile(DATAINPUTPATH+'/vektor/ZABAGED/line_x/merged_polygons_groupped.shp'):
+    print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/ZABAGED/line_x', layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True)
+    print gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=PLUGIN_PATH+'/grass/landuse_type_zbg.rules')
+
+#If the data are from OSM
+if os.path.isfile(DATAINPUTPATH+'/vektor/OSM/line_x/merged_polygons_groupped.shp'):
+    print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/OSM/line_x', layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True)
+    print gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=PLUGIN_PATH+'/grass/landuse_type_osm.rules')
+
 #Computes areas
 print gscript.read_command('v.db.addcolumn', map='sectors_group', layer='1', columns='area_ha DOUBLE PRECISION')
 print gscript.read_command('v.to.db', map='sectors_group', layer='1', option='area', units='hectares', columns='area_ha')

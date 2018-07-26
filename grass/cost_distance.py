@@ -108,6 +108,39 @@ TYPE=int(sys.argv[4])
 print gscript.read_command('v.in.ascii', input=PLUGIN_PATH + '/grass/coords.txt', output='coords', separator='comma' , overwrite=True)
 #Converts to the raster
 print gscript.read_command('v.to.rast', input='coords', output='coords', use='cat' , overwrite=True)
+
+#Tests if the coord is not in null area
+print gscript.read_command('r.mapcalc', expression='coords_friction_slope=friction_slope * coords', overwrite=True)
+stats = gscript.parse_command('r.univar', map='coords_friction_slope', flags='g')
+try:
+    # Reads min value
+    MIN = float(stats['min'])
+except:
+    #if the min value is null
+    print gscript.read_command('r.mapcalc', expression='friction_null_rec=if(isnull(friction_slope), 1, null())',
+                               overwrite=True)
+    print gscript.read_command('r.buffer', input='friction_null_rec', output='friction_null_rec_buf_10', distances='10',
+                               overwrite=True)
+    print  gscript.read_command('r.null', map='friction_null_rec_buf_10', setnull='1', overwrite=True)
+    print gscript.read_command('r.mapcalc', expression='friction_flat=1', overwrite=True)
+    print gscript.read_command('r.cost', input='friction_flat', output='friction_flat_cost', start_points='coords',
+                               overwrite=True)
+    print gscript.read_command('r.mapcalc', expression='friction_flat_cost_buf=friction_flat_cost*friction_null_rec_buf_10',
+                               overwrite=True)
+    stats2 = gscript.parse_command('r.univar', map='friction_flat_cost_buf', flags='g')
+    try:
+        # Reads min value
+        MIN = float(stats2['min'])
+        f = open(PLUGIN_PATH + '/grass/move.rules', 'w')
+        f.write(str(MIN) + ' = 1\n')
+        f.write('* = null\n')
+        f.write('end')
+        f.close()
+        print gscript.read_command('r.reclass', input='friction_flat_cost_buf', output='coords',
+                                   rules=PLUGIN_PATH + '/grass/move.rules', overwrite=True)
+        print gscript.read_command('r.to.vect', input='coords', output='coords', type='point', overwrite=True)
+    except:
+        print "Problem with moving of the point from null area"
 #Reads radial CSV with WKT of triangles writtent by patracdockwidget.generateRadialOnPoint
 print gscript.read_command('v.in.ogr', input=PLUGIN_PATH + '/grass/radial.csv', output='radial', flags='o' , overwrite=True)
 #Converts triangles to raster
