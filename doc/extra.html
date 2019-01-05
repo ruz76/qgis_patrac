@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="description" content="Patrac" />
+<meta name="keywords" content="Patrac, Search and Rescue" />
+<link rel="stylesheet" type="text/css" href="css/main.css" media="screen" /><title>Pátrač</title>
+</head>
+
+<body>
+<div id="wrap">
+<div id="header">
+<div id="title">
+<h1>Pátrač</h1>
+</div>
+</div>
+<div id="leftside">
+<h2 class="hide">Menu</h2>
+<ul class="avmenu">
+<li><a href="intro.html">Úvod</a></li>
+<li><a href="guide.html">Průvodce</a></li>
+<li><a href="expert.html">Expert</a></li>
+<li><a href="settings.html">Nastavení</a></li>
+<li><a href="extra.html">Další funkce</a></li>
+<li><a href="install.html">Instalace</a></li>
+<li><a href="support.html">Podpora</a></li>
+
+</ul>
+</div>
+
+<div id="contentwide">
+<h1>Další funkce</h1>
+<p>Aplikace má celou řadu dalších funkcí.</p>
+
+<h2>Import dat z GPS</h2>
+<p>Pomocí tlačítka <img src="images/gps.png"/> je možné importovat data z GPS přijímače. Funkce aktuálně podporuje pouze nové přijímače, které připojují GPS jako USB zařízení. Do budoucna se nepředpokládá podpora starších zařízení.</p>
+<p>Import dat je možný buď výběrem stop ze seznamu všech stop nebo ořezáním stop dle zadaného časového okna.</p>
+
+<h2>Zobrazení pozic pátračů</h2>
+<p>Pomocí tlačítka <img src="images/patraci_points.png"/> je možné zobrazit poslední pozice pátračů, kteří jsou připojeni on-line. Tato funkce vyžaduje připojení k internetu.</p> 
+<p>Po zmáčknutí tlačítka je vrstva patraci aktualizována daty ze serveru. Zelenou ikonou jsou zobrazeni aktivní pátrači (log v posledních 5-ti minutách), bílou ikonou jsou zobrazeni neaktivní pátrači.</p>
+
+<h2>Zobrazení stop pátračů</h2>
+<p>Pomocí tlačítka <img src="images/patraci_lines.png"/> je možné zobrazit stopy pátračů, kteří jsou připojeni on-line. Tato funkce vyžaduje připojení k internetu.</p> 
+<p>Po zmáčknutí tlačítka je vrstva patraci_lines aktualizována daty ze serveru.</p>
+
+<h2>Zaslání zprávy</h2>
+<p>Pomocí tlačítka <img src="images/message.png"/> je možné pátračům, kteří jsou připojeni on-line zaslat zprávu. Tato funkce vyžaduje připojení k internetu.</p> 
+<p><img src="images/chat.png"/> </p>
+
+<h2>Zadání bodů</h2>
+<p>Pomocí tlačítka <img src="images/places.png"/> je možné upravovat body pozorování.</p> 
+<p><img src="images/places_dialog.png"/></p>
+<p>Vybraný bod je možné přesunout na souřadnice.</p>
+<p>Místa zadaná liniemi je možno převést na body.</p>
+<p>Místa zadaná plochami je možno převést na body.</p>
+
+<h2>Úprava sektorů</h2>
+<h3>Spojování</h3>
+<p>Častou operací bude spojování menších sektorů do jednoho většího. Vhodný postup je následující:</p>
+<ul>
+<li>Pomocí nástroje <img src="images/edit.png"/> zahájíme editaci.</li>
+<li>Pomocí nástroje <img src="images/select.png"/> a držení klávesy CTRL klikáme do sektorů. Ty se označují žlutou barvou.</li>
+<li>Jakmile máme vybrány všechny sektory, které chceme spojit, zmáčkneme tlačítko <img src="images/join.png"/>.</li>
+<li>Objeví se dialogové okno <br/><img src="images/join2.png"/>, kde pouze pomocí tlačítka OK (Budiž) potvrdíme sloučení.</li>
+<li>Takto můžeme dále pokračovat s ostatními sektory.</li>
+<li>Pomocí nástroje <img src="images/edit.png"/> ukončíme editaci. Na výzvu k uložení dáme Ano (OK, Budiž).</li>
+<li>Pomocí nástroje <img src="images/recalculate.png"/> v panelu Pátrač provedeme přečíslování sektorů.</li>
+</ul>
+
+<h3>Rozdělování</h3>
+<p>Někdy bude nutné velký sektor rozdělit. Nejedná se o triviální operaci, proto pokud nemusíte, tak to nedělejte. Vhodný postup je následující:</p>
+<ul>
+<li>Pomocí nástroje <img src="images/edit.png"/> zahájíme editaci.</li>
+<li>Pomocí nástroje <img src="images/split.png"/> můžeme zahájit kreslení linie, kterou rozdělíme sektor. Kreslení linie probíhá pomocí levého tlačítka myši a ukončuje se pomocí pravého tlačítka myši. Po dokončení se sektor rozdělí nicméně informace o rozloze (ha) i název sektoru zůstane do doby přečíslování stejná jako u původního sektoru pro všechny nově vzniklé sektory.</li>
+<li>Pomocí nástroje <img src="images/edit.png"/> ukončíme editaci. Na výzvu k uložení dáme Ano (OK, Budiž).</li>
+<li>Pomocí nástroje <img src="images/recalculate.png"/> v panelu Pátrač provedeme přečíslování sektorů.</li>
+</ul>
+
+</div>
+</div>
+
+</body>
+</html>

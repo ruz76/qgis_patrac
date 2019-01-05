@@ -65,8 +65,8 @@ class AboutDialog(QDialog, Ui_Dialog):
         
 
     def getAboutText(self):
-        return self.tr("""<p>Podpora hledání pohřešované osoby.</p>
-                       <p><strong>Developers</strong>: Jan Růžička</p>
+        return self.tr("""<p>Search and Rescue.</p>
+                       <p><strong>Developers</strong>: A Jan Ruzicka</p>
                        <p><strong>Homepage</strong>: <a href="http://github.com/ruz76/qgis_patrac">Patrac</a></p>
                        """
                       )

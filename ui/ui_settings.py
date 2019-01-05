@@ -4,7 +4,7 @@
 #
 # Patrac
 # ---------------------------------------------------------
-# Podpora hledání pohřešované osoby
+# Podpora pátrání po pohřešované osobě
 #
 # Copyright (C) 2017-2019 Jan Růžička (jan.ruzicka.vsb@gmail.com)
 #
@@ -30,6 +30,16 @@ import shutil
 import csv
 import io
 from PyQt4 import QtGui, uic
+from qgis.core import *
+from qgis.gui import *
+from qgis import utils
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+import webbrowser
+import urllib2
+import socket
+import requests, json
+#import qrcode
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'settings.ui'))
@@ -41,6 +51,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         super(Ui_Settings, self).__init__(parent)
         self.setupUi(self)
         self.pluginPath = pluginPath
+        self.main = parent
         self.comboBoxDistance.addItem(u"LSOM")
         self.comboBoxDistance.addItem(u"Hill")
         self.comboBoxDistance.addItem(u"UK")
@@ -56,13 +67,155 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.fillTableWidgetFriction("/grass/friction.csv", self.tableWidgetFriction)
         #Fills table with search units
         self.fillTableWidgetUnits("/grass/units.txt", self.tableWidgetUnits)
-        #Fills textEdit with SearchID
-        self.fillLineEdit("/grass/searchid.txt", self.lineEditSearchID)
+        #Fills values for weights of the points
+        self.fillLineEdit("/grass/weightlimit.txt", self.lineEditWeightLimit)
+        self.pushButtonHds.clicked.connect(self.testHds)
+        self.pushButtonUpdatePlugin.clicked.connect(self.updatePlugin)
+        self.pushButtonUpdateData.clicked.connect(self.updateData)
+        self.pushButtonGetSystemUsers.clicked.connect(self.refreshSystemUsers)
+        self.pushButtonCallOnDuty.clicked.connect(self.callOnDuty)
+        self.pushButtonJoinSearch.clicked.connect(self.callToJoin)
+        self.pushButtonPutToSleep.clicked.connect(self.putToSleep)
+        self.pushButtonShowHelp.clicked.connect(self.showHelp)
         self.buttonBox.accepted.connect(self.accept)
+        self.showPath()
+
+    def updateSettings(self):
+        self.showSearchId()
+        self.showPath()
+
+    def showSearchId(self):
+        # Fills textEdit with SearchID
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        self.searchID = open(DATAPATH + "/config/searchid.txt", 'r').read()
+        self.lineEditSearchID.setText(self.searchID)
+
+    def showPath(self):
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        self.labelPath.setText("Cesta k projektu: " + prjfi.absolutePath())
+
+    def testHds(self):
+        self.main.testHds()
+
+    def updatePlugin(self):
+        shutil.copy("/tmp/aboutdialog.py", self.pluginPath + "/aboutdialog.py")
+        utils.reloadPlugin('qgis_patrac');
+
+    def updateData(self):
+        QMessageBox.information(None, "NOT IMPLEMENTED", "Tato funkce není zatím implementována")
+
+    def showHelp(self):
+        webbrowser.open("file://" + self.pluginPath + "/doc/intro.html")
+
+    def getQrCode(self):
+        img = qrcode.make('Some data here')
 
     def fillLineEdit(self, fileName, lineEdit):
-        searchID = open(self.pluginPath + fileName, 'r').read()
-        lineEdit.setText(searchID)
+        content = open(self.pluginPath + fileName, 'r').read()
+        lineEdit.setText(content)
+
+    def getRegion(self):
+        # TODO
+        return "KH"
+
+    def getRegionAndSurrounding(self):
+        # TODO
+        return ["KH", "PA", "ST", "US"]
+
+    def callOnDuty(self):
+        self.setStatus("callonduty", self.searchID)
+
+    def callToJoin(self):
+        self.setStatus("calltojoin", self.searchID)
+
+    def putToSleep(self):
+        self.setStatus("released", "")
+
+    def getSelectedSystemUsers(self):
+        #indexes = self.selectionModel.selectedIndexes()
+        rows = self.tableWidgetSystemUsers.selectionModel().selectedRows()
+        #rows = self.tableWidgetSystemUsers.selectionModel().selectedIndexes()
+        ids=""
+        first = True
+        for row in rows:
+            if first:
+                ids = ids + self.tableWidgetSystemUsers.item(row.row(), 0).text()
+            else:
+                ids = ids + ";" + self.tableWidgetSystemUsers.item(row.row(), 0).text()
+            first = False
+            #ids.append(self.tableWidgetSystemUsers.item(row.row(), 0).text())
+            #print(self.tableWidgetSystemUsers.item(row.row(), 0).text());
+        return ids
+
+    def setStatus(self, status, searchid):
+        response = None
+        ids = self.getSelectedSystemUsers()
+        if ids == "":
+            QMessageBox.information(None, "INFO:", u"Nevybrali jste žádného uživatele.")
+            return
+        # Connects to the server to call the selected users on duty
+        try:
+            # TODO change hardcoded value for ids to values from table
+            response = urllib2.urlopen(
+                'http://gisak.vsb.cz/patrac/mserver.php?operation=changestatus&id=pcr1234&status_to='+status+'&ids='+ids+"&searchid="+searchid, None, 5)
+            changed = response.read()
+            self.refreshSystemUsers()
+            QgsMessageLog.logMessage(changed, "Patrac")
+            return changed
+        except urllib2.URLError:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            return ""
+        except e:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            return ""
+        except socket.timeout:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            return ""
+
+    def refreshSystemUsers(self):
+        list = self.getSystemUsers()
+        if list != "":
+            self.fillTableWidgetSystemUsers(list, self.tableWidgetSystemUsers)
+
+    def getSystemUsers(self):
+        response = None
+        # Connects to the server to obtain list of users based on list of locations
+        try:
+            # TODO change hardcoded value for id to value from configuration
+            response = urllib2.urlopen(
+                'http://gisak.vsb.cz/patrac/mserver.php?operation=getsystemusers&id=pcr1234', None, 5)
+            system_users = response.read()
+            return system_users
+        except urllib2.URLError:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            return ""
+        except e:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            return ""
+        except socket.timeout:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+            return ""
+
+    def fillTableWidgetSystemUsers(self, list, tableWidget):
+        """Fills table with units"""
+        tableWidget.setHorizontalHeaderLabels([u"Sysid", u"Jméno", u"Status", u"Id pátrání", u"Kraj", u"Příjezd do"])
+        tableWidget.setColumnWidth(1, 300);
+        #Reads list and populate the table
+        lines = list.split("\n")
+        tableWidget.setRowCount(len(lines))
+        #tableWidget.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
+        # Loops via users
+        i = 0
+        for line in lines:
+            if line != "":
+                cols = line.split(";")
+                j = 0
+                for col in cols:
+                    tableWidget.setItem(i, j, QtGui.QTableWidgetItem(str(col).decode('utf8')))
+                    j = j + 1
+                #tableWidget.selectRow(i)
+                i = i + 1
 
     def fillTableWidgetFriction(self, fileName, tableWidget):
         """Fills table with units"""
@@ -158,6 +311,16 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         f.write(self.lineEditSearchID.text())
         f.close()
 
+        f = open(self.pluginPath + '/grass/weightlimit.txt', 'w')
+        f.write(self.lineEditWeightLimit.text())
+        f.close()
+
+        f = open(self.pluginPath + '/grass/radialsettings.txt', 'w')
+        if self.checkBoxRadial.isChecked():
+            f.write("1")
+        else:
+            f.write("0")
+        f.close()
 
     def if_number_get_string(self, number):
         """Converts number to string"""

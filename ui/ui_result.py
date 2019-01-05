@@ -34,6 +34,8 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from qgis.core import *
 from qgis.gui import *
+import urllib2
+import socket
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -49,8 +51,10 @@ class Ui_Result(QtGui.QDialog, FORM_CLASS):
         super(Ui_Result, self).__init__(parent)
         self.setupUi(self)
         self.buttonBox.accepted.connect(self.accept)
+        self.pushButtonNotFound.clicked.connect(self.acceptNotFound)
 
         self.DATAPATH = ''
+        self.searchid = ''
 
         self.point = None
 
@@ -125,6 +129,11 @@ class Ui_Result(QtGui.QDialog, FORM_CLASS):
     def accept(self):
         self.saveXML()
         self.saveHTML()
+        self.closeSearch()
+        self.close()
+
+    def acceptNotFound(self):
+        self.closeSearch()
         self.close()
 
     def saveHTML(self):
@@ -185,4 +194,18 @@ class Ui_Result(QtGui.QDialog, FORM_CLASS):
     def setDataPath(self, DATAPATH):
         self.DATAPATH = DATAPATH
 
+    def setSearchid(self, searchid):
+        self.searchid = searchid
 
+    def closeSearch(self):
+        response = None
+        # Connects to the server to close the search
+        try:
+            url = 'http://gisak.vsb.cz/patrac/mserver.php?operation=closesearch&id=pcr007&searchid=' + self.searchid
+            print url
+            response = urllib2.urlopen(url, None, 5)
+            searchStatus = response.read()
+        except urllib2.URLError:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+        except socket.timeout:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")

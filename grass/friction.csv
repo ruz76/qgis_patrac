@@ -3,9 +3,9 @@
 3;8;HRBITO;Hřbitov.;
 4;14;KOLEJI;Kolejiště;
 5;null;LETISTE;Letiště;
-6;5;LPKOSO;Louky, kosodřeviny.;V zatím dodaných datech se nevyskytuje.
-7;18;LPKROV;Louky, pastivny s křovinami.;
-8;14;LPSTROM;Louky, pastivny se stromy.;
+6;5;LPKOSO;Lesní půda, kosodřeviny.;V zatím dodaných datech se nevyskytuje.
+7;18;LPKROV;Lesní půda, křoviny.;
+8;14;LPSTROM;Lesní půda, stromy.;
 9;5;OBLEDR;Neurčeno;V zatím dodaných datech se nevyskytuje.
 10;5;ODPOCI;Odpočívadala;
 11;14;ORNAPU;Orná půda;

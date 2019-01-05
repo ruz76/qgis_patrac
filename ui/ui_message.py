@@ -39,6 +39,8 @@ import urllib2
 import socket
 import requests, json
 import io
+import datetime
+import webbrowser
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'message.ui'))
@@ -58,7 +60,34 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         self.browseButton.clicked.connect(self.showBrowse)
         self.btnCheckAll.clicked.connect(self.checkAll)
         self.btnCheckNone.clicked.connect(self.checkNone)
+        self.btnRefresh.clicked.connect(self.fillSearchersList)
         self.fillSearchersList()
+        self.listWidgetHistory.setWordWrap(True)
+        self.fillMessagesList()
+        self.listWidgetHistory.scrollToBottom()
+        self.listWidgetHistory.itemDoubleClicked.connect(self.messagesDoubleClick)
+
+    def messagesDoubleClick(self, item):
+        print item.text()
+        items = item.text().split("@")
+        if (len(items) == 2):
+            attachment = str(items[1]).strip()
+            if len(attachment) > 2:
+                webbrowser.open("file://" + self.DATAPATH + "/pracovni/" + attachment)
+
+    def fillMessagesList(self):
+        #read file with messages and
+        if os.path.exists(self.DATAPATH + "/pracovni/zpravy.txt"):
+            print self.DATAPATH + "/pracovni/zpravy.txt"
+            with io.open(self.DATAPATH + "/pracovni/zpravy.txt", encoding='utf-8') as f:
+                item = ""
+                for line in f:
+                    if item != "" and line.startswith("---"):
+                        self.listWidgetHistory.addItem(item)
+                        item = ""
+                    else:
+                        item += line
+
 
     def fillSearchersList(self):
         self.listViewModel = QStandardItemModel()
@@ -84,15 +113,16 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         except urllib2.URLError:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             self.close()
-        except e:
-            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
-            self.close()
         except socket.timeout:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             self.close()
 
+        self.getMessage()
+
     def getSearchID(self):
-        searchid = open(self.pluginPath + '/grass/searchid.txt', 'r').read()
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        searchid = open(DATAPATH + "/config/searchid.txt", 'r').read()
         return searchid.strip()
 
     def showBrowse(self):
@@ -103,6 +133,7 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
     def checkAll(self):
         i = 0
         while self.listViewModel.item(i):
+            print i
             self.listViewModel.item(i).setCheckState(Qt.Checked)
             i += 1
 
@@ -130,7 +161,7 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
     def getSearchersNames(self):
         i = 0
         added = 0
-        names = ""
+        names = u""
         while self.listViewModel.item(i):
             if self.listViewModel.item(i).checkState() == Qt.Checked:
                 name = self.listViewModel.item(i).text().split("(")[0][:-1]
@@ -149,11 +180,16 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         #Gets the sessionid from combobox
         #id = str(self.comboBoxUsers.currentText()).split("(")[1][:-1]
         ids = self.getSearchersIDS()
-        QgsMessageLog.logMessage(ids, "Patrac")
+        QgsMessageLog.logMessage("Recipients: " + ids, "Patrac")
+        if ids == "":
+            QMessageBox.information(None, "ERROR:", u"Nebyl vybrán příjemce. Nemohu zprávu odeslat.")
+            return
         #TODO test if something is selected
         #Gets the message as plain text
         message = self.plainTextEditMessage.toPlainText()
         searchid = self.getSearchID()
+        now = datetime.datetime.now().strftime("%d.%m. %H:%M")
+        #now = str(datetime.datetime.now())
         if filename1:
             if os.path.isfile(filename1):
                 #If the file exists
@@ -161,25 +197,84 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
                 with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php',
                                                                    data={'message': message, 'ids': ids,
                                                                          'operation': 'insertmessages',
-                                                                         'searchid': searchid},
+                                                                         'searchid': searchid,
+                                                                         'from_id': 'coordinator' + searchid},
                                                                    files={'fileToUpload': f})
                 QgsMessageLog.logMessage("Response: " + r.text, "Patrac")
                 #Adds message info to the list of sent messages
                 #Should be better - possibility to read whole message
-                self.listWidgetHistory.addItem(str(self.getSearchersNames()) + ": " + message[0:10] + "... " + " @ ")
+                self.listWidgetHistory.addItem(now + "\n" + self.getSearchersNames() + "\n" + message + "\n@ " + filename1)
                 #Stores message sinto file for archiving
                 with io.open(self.DATAPATH + "/pracovni/zpravy.txt", encoding='utf-8', mode="a") as messages:
-                    messages.write(str(self.getSearchersNames()) + "\n" + message + "\nFile:" + filename1 + "\n--------------------\n")
+                    messages.write(now + "\n" + self.getSearchersNames() + "\n" + message + "\n@ " + filename1 + "\n--------------------\n")
         else:
             #If file is not specified then send without file
             #r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'})
             r = requests.post('http://gisak.vsb.cz/patrac/mserver.php',
                               data={'message': message, 'ids': ids, 'operation': 'insertmessages',
-                                    'searchid': searchid})
+                                    'searchid': searchid, 'from_id': 'coordinator' + searchid})
             QgsMessageLog.logMessage("Response: " + r.text, "Patrac")
             # Adds message info to the list of sent messages
             # Should be better - possibility to read whole message
-            self.listWidgetHistory.addItem(str(self.getSearchersNames()) + ": " + message[0:10] + "... ")
+            self.listWidgetHistory.addItem(now + "\n" + self.getSearchersNames() + "\n" + message)
             # Stores message sinto file for archiving
             with io.open(self.DATAPATH + "/pracovni/zpravy.txt", encoding='utf-8', mode="a") as messages:
-                messages.write(str(self.getSearchersNames()) + "\n" + message + "\n--------------------\n")
+                messages.write(now + "\n" + self.getSearchersNames() + "\n" + message + "\n--------------------\n")
+
+        self.listWidgetHistory.item(0).setForeground(QColor(255, 0, 0, 255))
+        self.listWidgetHistory.scrollToBottom()
+
+    def getMessage(self):
+        response = None
+        # Connects to the server to obtain message for coordinator
+        try:
+            response = urllib2.urlopen(
+                'http://gisak.vsb.cz/patrac/mserver.php?operation=getmessages&searchid=' + self.getSearchID() + '&id=coordinator' + self.getSearchID(), None, 5)
+            message = response.read()
+            print message
+            cols = message.split(";")
+            if cols != None and len(cols) > 4:
+                attachment = False
+                if cols[3] != "":
+                    self.getAttachment(cols[3], cols[5])
+                    attachment = True
+                messageForView = str(cols[6]).decode('utf8') + ": " + str(cols[4]).decode('utf8') + "\n" + str(cols[2]).decode('utf8')
+                if attachment:
+                    messageForView += " @ " + cols[3]
+                self.listWidgetHistory.addItem("\n" + messageForView)
+                self.listWidgetHistory.item(self.listWidgetHistory.count() - 1).setForeground(QColor(255, 0, 0, 255))
+                self.listWidgetHistory.scrollToBottom()
+                # Stores message sinto file for archiving
+                with io.open(self.DATAPATH + "/pracovni/zpravy.txt", encoding='utf-8', mode="a") as messages:
+                    messages.write(messageForView + "\n--------------------\n")
+
+        except urllib2.URLError:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+        except socket.timeout:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+
+    def getAttachment(self, filename, shared):
+        response = None
+        fileplacement = None
+        # Connects to the server to obtain message for coordinator
+        try:
+            if shared == "1":
+                fileplacement = "shared"
+            else:
+                fileplacement = 'coordinator' + self.getSearchID()
+
+            print "FF: " + filename
+            url = 'http://gisak.vsb.cz/patrac/mserver.php?operation=getfile&searchid=' + self.getSearchID() + '&id=' + fileplacement + '&filename=' + filename
+            print "URL:" + url
+            # download the url contents in binary format
+            r = requests.get(url)
+
+            # open method to open a file on your system and write the contents
+            with open(self.DATAPATH + "/pracovni/" + filename, "wb") as code:
+                code.write(r.content)
+
+
+        except urllib2.URLError:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem při stažení přílohy.")
+        except socket.timeout:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem při stažení přílohy.")

@@ -116,6 +116,7 @@ SUM_POCET_KPT = 0
 SUM_POCET_PT = 0
 SUM_POCET_VPT = 0
 SUM_POCET_PT_ALT = 0
+SUM_POCET_APT = 0
 
 #Loops via all selected search sectors based on number of sectors
 for i in xrange(1, COUNT+1):
@@ -199,6 +200,7 @@ for i in xrange(1, COUNT+1):
         P10 = 100
 
     #Writes output to the report
+    f.write(u'<div id="a' + str(i) + 's">\n')
     f.write(u"<ul>\n")
     f.write(u"<li>volný schůdný bez porostu: " + str(P1) + " %</li>\n")
     f.write(u"<li>volný schůdný s porostem: " + str(P2) + " %</li>\n")
@@ -211,6 +213,7 @@ for i in xrange(1, COUNT+1):
     f.write(u"<li>vodní plocha: " + str(P9) + " %</li>\n")
     f.write(u"<li>ostatní plochy: " + str(P10) + " %</li>\n")
     f.write(u"</ul>\n")
+    f.write(u"</div>\n")
 
     #Sets current number of units to zero
     POCET_KPT = 0
@@ -247,16 +250,38 @@ for i in xrange(1, COUNT+1):
     if P9 > 0:
         POCET_VPT = 1 #jeden tym pro vodni plochu
 
+    POCET_APT = 0
+    if P1 > 0 or P2 > 0:
+        POCET_APT = 1
+
     #Writes to the report
-    f.write(u"\n<h3>Nasazení</h3>\n");
+    f.write(u"\n<p>Nasazení <strong>"
+            + str(int(math.ceil(POCET_KPT))) + u" KPT, "
+            + str(int(math.ceil(POCET_PT))) + u" PT, "
+            + str(int(math.ceil(POCET_VPT))) + u" VPT, "
+            + str(int(math.ceil(POCET_VPT))) + u" APT</strong> "
+            + '<label class="rolldown" for ="a' + str(i) + 'nc">Podrobnosti</label>'
+            + "</p>\n");
+    f.write(u'<input id="a' + str(i) + u'nc" type = "checkbox" style = "display: none" >\n')
+    f.write(u'<div id="a' + str(i) + 'n\">\n')
+    f.write(u"<ul>")
     if math.ceil(POCET_KPT) > 0:
-        f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_KPT)) + u" Kynologických pátracích týmů (KPT) k propátraní do 3 hodin</p>\n");
-        f.write(u"<p>Je možné nahradit " + str(math.ceil(POCET_KPT_ALT)) + u" KPT " + str(
-            math.ceil(POCET_PT_ALT)) + u" PT</p>\n");
+        f.write(u"<li>Vhodné nasadit " + str(int(
+            math.ceil(POCET_KPT))) + u" Kynologických pátracích týmů (KPT) k propátraní do 3 hodin</li>\n");
+        if math.ceil(POCET_KPT_ALT) > 0:
+            f.write(u"<li>Je možné nahradit " + str(int(math.ceil(POCET_KPT_ALT))) + u" KPT " + str(
+                math.ceil(POCET_PT_ALT)) + u" PT</li>\n");
     if math.ceil(POCET_PT) > 0:
-        f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_PT)) + u" Pátracích týmů (PT) s dvaceti členy k propátraní do 3 hodin</p>\n");
+        f.write(u"<li>Vhodné nasadit " + str(int(
+            math.ceil(POCET_PT))) + u" Pátracích týmů (PT) s dvaceti členy k propátraní do 3 hodin</li>\n");
     if math.ceil(POCET_VPT) > 0:
-        f.write(u"<p>Vhodné nasadit " + str(math.ceil(POCET_VPT)) + u" Vodních pátracích týmů (VPT) k propátraní do 3 hodin</p>\n");
+        f.write(u"<li>Vhodné nasadit " + str(int(
+            math.ceil(POCET_VPT))) + u" Vodních pátracích týmů (VPT) k propátraní do 3 hodin</li>\n");
+    if math.ceil(POCET_VPT) > 0:
+        f.write(u"<li>Vhodné nasadit " + str(int(
+            math.ceil(POCET_VPT))) + u" Vzdušný pátrací tým (APT). Helikoptéru nebo dron. Prostor obsahuje volné plochy bez porostu.</li>\n");
+    f.write(u"</ul>")
+    f.write(u"</div>")
 
     #export do SHP s nazvem dle atributu label
     #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/', output_layer=str(VALUESITEMS[0]), output_type='line' overwrite=True)
@@ -274,6 +299,7 @@ for i in xrange(1, COUNT+1):
     SUM_POCET_PT += math.ceil(POCET_PT)
     SUM_POCET_VPT += math.ceil(POCET_VPT)
     SUM_POCET_PT_ALT += math.ceil(POCET_KPT_ALT)
+    SUM_POCET_APT += math.ceil(POCET_APT)
 
     f.close()
 
@@ -319,5 +345,11 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
                             f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
                         else:
                             f.write(u"\n<p>K dispozici není žádný potápěč. Je nutné nějaké zajistit.</p>\n");
+                # air (helicopter, dron)
+                if float(SUM_POCET_APT) > 0:
+                    # TODO check for helicopter - we do not have category yet
+                    if i == 0:
+                        f.write(u"\n<p>Vhodné nasadit vzdušný pátrací tým (APT). Helikoptéru nebo dron. Prostor obsahuje volné plochy bez porostu.</p>\n");
         i=i+1
+
 

@@ -4,6 +4,7 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import os.path
+import csv
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -14,38 +15,41 @@ class Ui_PatracDockWidget(object):
     def setupUi(self, PatracDockWidget):
         PatracDockWidget.setObjectName(_fromUtf8("PatracDockWidget"))
         PatracDockWidget.resize(302, 182)
+
+        self.pluginPath = PatracDockWidget.pluginPath
+
+        # for i in inspect.getmembers(PatracDockWidget):
+        #     # Ignores anything starting with underscore
+        #     # (that is, private and protected attributes)
+        #     if not i[0].startswith('_'):
+        #         # Ignores methods
+        #         if not inspect.ismethod(i[1]):
+        #             print(i)
+
         self.dockWidgetContents = QtGui.QWidget()
         self.dockWidgetContents.setObjectName(_fromUtf8("dockWidgetContents"))
-        self.verticalLayout = QtGui.QVBoxLayout(self.dockWidgetContents)
+
+        self.tabLayout = QtGui.QVBoxLayout(self.dockWidgetContents)
+        self.tabLayout.setObjectName(_fromUtf8("tabLayout"))
+
+        self.tabWidget = QtGui.QTabWidget()
+        self.tabGuide = QtGui.QWidget()
+        self.tabWidget.addTab(self.tabGuide, QtGui.QApplication.translate("tabGuide", "Průvodce", None, QtGui.QApplication.UnicodeUTF8))
+
+        self.tabExpert = QtGui.QWidget()
+        self.tabWidget.addTab(self.tabExpert, "Expert")
+
+        self.verticalLayout = QtGui.QVBoxLayout(self.tabExpert)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
+        self.tabExpert.setLayout(self.verticalLayout)
 
-        self.horizontalLayoutToolbarSearch = QtGui.QHBoxLayout()
-        self.horizontalLayoutToolbarSearch.setObjectName(_fromUtf8("horizontalLayoutToolbarSearch"))
+        self.tabHelp = QtGui.QWidget()
+        self.tabWidget.addTab(self.tabHelp, u"Nápověda")
+        self.setHelpTab()
 
-        self.msearch = QLineEdit()
-        self.msearch.setMaximumWidth(280)
-        self.msearch.setAlignment(Qt.AlignLeft)
-        self.msearch.setPlaceholderText(u"Zadejte název obce ...")
-        self.horizontalLayoutToolbarSearch.addWidget(self.msearch)
-
-        self.tbtnZoomToMunicipality = QtGui.QPushButton(self.dockWidgetContents)
-        self.tbtnZoomToMunicipality.setObjectName(_fromUtf8("tbtnZoomToMunicipality"))
-        self.tbtnZoomToMunicipality.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "zoom.png")));
-        self.tbtnZoomToMunicipality.setIconSize(QSize(32, 32));
-        self.tbtnZoomToMunicipality.setFixedSize(QSize(42, 42));
-        self.tbtnZoomToMunicipality.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Přiblížit", None,
-                                                                       QtGui.QApplication.UnicodeUTF8))
-        self.horizontalLayoutToolbarSearch.addWidget(self.tbtnZoomToMunicipality)
-
-        self.tbtnCreateProject = QtGui.QPushButton(self.dockWidgetContents)
-        self.tbtnCreateProject.setObjectName(_fromUtf8("tbtnCreateProject"))
-        self.tbtnCreateProject.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "project.png")));
-        self.tbtnCreateProject.setIconSize(QSize(32, 32));
-        self.tbtnCreateProject.setFixedSize(QSize(42, 42));
-        self.tbtnCreateProject.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Vytvoření projektu", None, QtGui.QApplication.UnicodeUTF8))
-        self.horizontalLayoutToolbarSearch.addWidget(self.tbtnCreateProject)
-
-        self.verticalLayout.addLayout(self.horizontalLayoutToolbarSearch)
+        self.verticalGuideLayout = QtGui.QVBoxLayout(self.tabGuide)
+        self.verticalGuideLayout.setObjectName(_fromUtf8("verticalGuideLayout"))
+        self.tabGuide.setLayout(self.verticalGuideLayout)
 
         self.horizontalLayoutToolbar = QtGui.QHBoxLayout()
         self.horizontalLayoutToolbar.setObjectName(_fromUtf8("horizontalLayoutToolbar"))  
@@ -217,9 +221,220 @@ class Ui_PatracDockWidget(object):
 
         self.verticalLayout.addLayout(self.horizontalLayoutToolbar_5)
 
+        self.setGuideSteps()
+
+        self.tabLayout.addWidget(self.tabWidget)
+
         PatracDockWidget.setWidget(self.dockWidgetContents)
         self.retranslateUi(PatracDockWidget)
         QtCore.QMetaObject.connectSlotsByName(PatracDockWidget)
+
+    def setHelpTab(self):
+        self.verticalHelpLayout = QtGui.QVBoxLayout(self.tabHelp)
+        self.verticalHelpLayout.setObjectName(_fromUtf8("verticalHelpLayout"))
+        self.helpShow = QtGui.QPushButton(self.dockWidgetContents)
+        self.helpShow.setObjectName(_fromUtf8("helpShow"))
+        self.helpShow.setText(u"Zobrazit nápovědu")
+        self.verticalHelpLayout.addWidget(self.helpShow)
+        self.tabHelp.setLayout(self.verticalHelpLayout)
+
+    def setGuideSteps(self):
+        self.tabGuideSteps = QtGui.QTabWidget()
+        self.tabGuideStep1 = QtGui.QWidget()
+        self.tabGuideSteps.addTab(self.tabGuideStep1, "1")
+        self.setGuideLayoutStep1()
+        self.tabGuideStep2 = QtGui.QWidget()
+        self.tabGuideSteps.addTab(self.tabGuideStep2, "2")
+        self.setGuideLayoutStep2()
+        self.tabGuideStep3 = QtGui.QWidget()
+        self.tabGuideSteps.addTab(self.tabGuideStep3, "3")
+        self.setGuideLayoutStep3()
+        self.tabGuideStep4 = QtGui.QWidget()
+        self.tabGuideSteps.addTab(self.tabGuideStep4, "4")
+        self.setGuideLayoutStep4()
+        self.tabGuideStep5 = QtGui.QWidget()
+        self.tabGuideSteps.addTab(self.tabGuideStep5, "5")
+        self.setGuideLayoutStep5()
+        self.tabGuideStep6 = QtGui.QWidget()
+        self.tabGuideSteps.addTab(self.tabGuideStep6, "6")
+        self.setGuideLayoutStep6()
+        self.tabGuideStep7 = QtGui.QWidget()
+        self.tabGuideSteps.addTab(self.tabGuideStep7, "7")
+        self.setGuideLayoutStep7()
+        self.verticalGuideLayout.addWidget(self.tabGuideSteps)
+        self.tabGuideSteps.setCurrentIndex(0)
+
+    def setGuideLayoutStep1(self):
+        self.verticalGuideLayoutStep1 = QtGui.QVBoxLayout(self.tabGuideStep1)
+        self.verticalGuideLayoutStep1.setObjectName(_fromUtf8("verticalGuideLayoutStep1"))
+        self.guideLabelStep1 = QtGui.QLabel(self.dockWidgetContents)
+        self.guideLabelStep1.setObjectName(_fromUtf8("guideLabelStep1"))
+        self.guideLabelStep1.setText(u"Zadejte název obce")
+        self.guideLabelStep1.setWordWrap(True)
+        self.verticalGuideLayoutStep1.addWidget(self.guideLabelStep1)
+        self.guideMunicipalitySearch = QLineEdit()
+        self.guideMunicipalitySearch.setMaximumWidth(280)
+        self.guideMunicipalitySearch.setAlignment(Qt.AlignLeft)
+        self.guideMunicipalitySearch.setPlaceholderText(u"Zadejte název obce ...")
+        self.verticalGuideLayoutStep1.addWidget(self.guideMunicipalitySearch)
+        self.guideStep1Next = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideStep1Next.setObjectName(_fromUtf8("guideStep1Next"))
+        self.guideStep1Next.setText(u"Další")
+        self.verticalGuideLayoutStep1.addWidget(self.guideStep1Next)
+        self.tabGuideStep1.setLayout(self.verticalGuideLayoutStep1)
+
+    def setGuideLayoutStep2(self):
+        self.verticalGuideLayoutStep2 = QtGui.QVBoxLayout(self.tabGuideStep2)
+        self.verticalGuideLayoutStep2.setObjectName(_fromUtf8("verticalGuideLayoutStep2"))
+        self.guideLabelStep2 = QtGui.QLabel(self.dockWidgetContents)
+        self.guideLabelStep2.setObjectName(_fromUtf8("guideLabelStep2"))
+        self.guideLabelStep2.setText(u"Zkontrolujte zda se mapa přiblížila na vybranou obec. "
+                                     u"Následně dojde k vygenerování projektu. Generování může trvat i několik minut.")
+        self.guideLabelStep2.setWordWrap(True)
+        self.verticalGuideLayoutStep2.addWidget(self.guideLabelStep2)
+        self.guideStep2Next = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideStep2Next.setObjectName(_fromUtf8("guideStep2Next"))
+        self.guideStep2Next.setText(u"Další")
+        self.verticalGuideLayoutStep2.addWidget(self.guideStep2Next)
+        self.tabGuideStep2.setLayout(self.verticalGuideLayoutStep2)
+
+    def setGuideLayoutStep3(self):
+        self.verticalGuideLayoutStep3 = QtGui.QVBoxLayout(self.tabGuideStep3)
+        self.verticalGuideLayoutStep3.setObjectName(_fromUtf8("verticalGuideLayoutStep3"))
+        self.guideLabelStep3 = QtGui.QLabel(self.dockWidgetContents)
+        self.guideLabelStep3.setObjectName(_fromUtf8("guideLabelStep3"))
+        self.guideLabelStep3.setText(u"Klikněte do mapy, kde máte hlášení o spatření osoby. Kliknout můžete vícekrát."
+                                     u"Mapu si můžete přiblížit, ale následně je nutné se přepnout zpět na aktuálně aktivní ikonu.")
+        self.guideLabelStep3.setWordWrap(True)
+        self.verticalGuideLayoutStep3.addWidget(self.guideLabelStep3)
+        self.guideStep3Next = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideStep3Next.setObjectName(_fromUtf8("guideStep3Next"))
+        self.guideStep3Next.setText(u"Další")
+        self.verticalGuideLayoutStep3.addWidget(self.guideStep3Next)
+        self.tabGuideStep3.setLayout(self.verticalGuideLayoutStep3)
+
+    def setGuideLayoutStep4(self):
+        self.verticalGuideLayoutStep4 = QtGui.QVBoxLayout(self.tabGuideStep4)
+        self.verticalGuideLayoutStep4.setObjectName(_fromUtf8("verticalGuideLayoutStep4"))
+        self.guideLabelStep4 = QtGui.QLabel(self.dockWidgetContents)
+        self.guideLabelStep4.setObjectName(_fromUtf8("guideLabelStep4"))
+        self.guideLabelStep4.setText(u"Vyberte typ pohřešované osoby. Následně dojde k určení pravděpodobnosti výskytu. Výpočet může trvat i několik minut.")
+        self.guideLabelStep4.setWordWrap(True)
+        self.verticalGuideLayoutStep4.addWidget(self.guideLabelStep4)
+        self.guideComboPerson = QtGui.QComboBox(self.dockWidgetContents)
+        self.guideComboPerson.setObjectName(_fromUtf8("guideComboPerson"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Dítě 1-3"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Dítě 4-6"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Dítě 7-12"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Dítě 13-15"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Deprese"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Psychická nemoc"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Retardovaný"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Alzheimer"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Turista"))
+        self.guideComboPerson.addItem(_fromUtf8(u"Demence"))
+        self.verticalGuideLayoutStep4.addWidget(self.guideComboPerson)
+        self.guideStep4Next = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideStep4Next.setObjectName(_fromUtf8("guideStep4Next"))
+        self.guideStep4Next.setText(u"Další")
+        self.verticalGuideLayoutStep4.addWidget(self.guideStep4Next)
+        self.tabGuideStep4.setLayout(self.verticalGuideLayoutStep4)
+
+    def setGuideLayoutStep5(self):
+        self.verticalGuideLayoutStep5 = QtGui.QVBoxLayout(self.tabGuideStep5)
+        self.verticalGuideLayoutStep5.setObjectName(_fromUtf8("verticalGuideLayoutStep5"))
+        self.guideLabelStep5 = QtGui.QLabel(self.dockWidgetContents)
+        self.guideLabelStep5.setObjectName(_fromUtf8("guideLabelStep5"))
+        self.guideLabelStep5.setText(u"Procento případů jsem nastavil na 70%. Procento můžete změnit. "
+                                     u"Zvýšení procenta však vede k delší době výpočtu a výběru větší oblasti, než je obvykle možné propátrat v rozumné době.")
+        self.guideLabelStep5.setWordWrap(True)
+        self.verticalGuideLayoutStep5.addWidget(self.guideLabelStep5)
+        self.guideSpinEnd = QtGui.QSpinBox(self.dockWidgetContents)
+        self.guideSpinEnd.setMaximum(100)
+        self.guideSpinEnd.setObjectName(_fromUtf8("guideSpinEnd"))
+        self.guideSpinEnd.setValue(70)
+        self.verticalGuideLayoutStep5.addWidget(self.guideSpinEnd)
+        self.guideStep5Next = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideStep5Next.setObjectName(_fromUtf8("guideStep5Next"))
+        self.guideStep5Next.setText(u"Další")
+        self.verticalGuideLayoutStep5.addWidget(self.guideStep5Next)
+        self.tabGuideStep5.setLayout(self.verticalGuideLayoutStep5)
+
+    def setGuideLayoutStep6(self):
+        self.verticalGuideLayoutStep6 = QtGui.QVBoxLayout(self.tabGuideStep6)
+        self.verticalGuideLayoutStep6.setObjectName(_fromUtf8("verticalGuideLayoutStep6"))
+        self.guideLabelStep6 = QtGui.QLabel(self.dockWidgetContents)
+        self.guideLabelStep6.setObjectName(_fromUtf8("guideLabelStep6"))
+        self.guideLabelStep6.setText(u"Zde můžete upravit počty prostředků")
+        self.guideLabelStep6.setWordWrap(True)
+        self.verticalGuideLayoutStep6.addWidget(self.guideLabelStep6)
+        self.loadAvailableUnits()
+        self.guideStep6Next = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideStep6Next.setObjectName(_fromUtf8("guideStep6Next"))
+        self.guideStep6Next.setText(u"Další")
+        self.verticalGuideLayoutStep6.addWidget(self.guideStep6Next)
+        self.tabGuideStep6.setLayout(self.verticalGuideLayoutStep6)
+
+    def setGuideLayoutStep7(self):
+        self.verticalGuideLayoutStep7 = QtGui.QVBoxLayout(self.tabGuideStep7)
+        self.verticalGuideLayoutStep7.setObjectName(_fromUtf8("verticalGuideLayoutStep7"))
+        self.guideLabelStep7 = QtGui.QLabel(self.dockWidgetContents)
+        self.guideLabelStep7.setObjectName(_fromUtf8("guideLabelStep7"))
+        self.guideLabelStep7.setText(u"Téměř dokončeno. Report obsahuje odkazy na PDF pro tisk a GPX pro GPS přijímače. PDF zatín nebyly vygenerovány. Generování PDF může trvat poměrně dlouho (řádově minuty). \nNezapomeňte zadat výsledek pátrání.")
+        self.guideLabelStep7.setWordWrap(True)
+        self.verticalGuideLayoutStep7.addWidget(self.guideLabelStep7)
+        self.chkGenerateOverallPDF = QtGui.QCheckBox(self.dockWidgetContents)
+        self.chkGenerateOverallPDF.setText(u"Vygenerovat souhrnné PDF pro tisk")
+        self.verticalGuideLayoutStep7.addWidget(self.chkGenerateOverallPDF)
+        #self.chkGeneratePDF = QtGui.QCheckBox(self.dockWidgetContents)
+        #self.chkGeneratePDF.setText(u"Vygenerovat PDF pro tisk")
+        #self.verticalGuideLayoutStep7.addWidget(self.chkGeneratePDF)
+        self.guideShowReport = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideShowReport.setObjectName(_fromUtf8("guideInsertFinal"))
+        self.guideShowReport.setText(u"Zobrazit report")
+        self.verticalGuideLayoutStep7.addWidget(self.guideShowReport)
+        self.guideInsertFinal = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideInsertFinal.setObjectName(_fromUtf8("guideInsertFinal"))
+        self.guideInsertFinal.setText(u"Zadat výsledek")
+        self.verticalGuideLayoutStep7.addWidget(self.guideInsertFinal)
+        self.tabGuideStep7.setLayout(self.verticalGuideLayoutStep7)
+
+    def loadAvailableUnits(self):
+        with open(self.pluginPath + "/grass/units.txt", "rb") as fileInput:
+            i=0
+            for row in csv.reader(fileInput, delimiter=';'):
+                unicode_row = [x.decode('utf8') for x in row]
+                # dog
+                if i == 0:
+                    self.guideDogCountLabel = QtGui.QLabel(self.dockWidgetContents)
+                    self.guideDogCountLabel.setText(u"Pes")
+                    self.guideDogCount = QLineEdit()
+                    self.guideDogCount.setText(unicode_row[0])
+                    self.horizontalDogCountLayout = QtGui.QHBoxLayout(self.tabGuideStep6)
+                    self.horizontalDogCountLayout.addWidget(self.guideDogCountLabel)
+                    self.horizontalDogCountLayout.addWidget(self.guideDogCount)
+                    self.verticalGuideLayoutStep6.addLayout(self.horizontalDogCountLayout)
+                # person
+                if i == 1:
+                    self.guidePersonCountLabel = QtGui.QLabel(self.dockWidgetContents)
+                    self.guidePersonCountLabel.setText(u"Člověk do rojnice")
+                    self.guidePersonCount = QLineEdit()
+                    self.guidePersonCount.setText(unicode_row[0])
+                    self.horizontalPersonCountLayout = QtGui.QHBoxLayout(self.tabGuideStep6)
+                    self.horizontalPersonCountLayout.addWidget(self.guidePersonCountLabel)
+                    self.horizontalPersonCountLayout.addWidget(self.guidePersonCount)
+                    self.verticalGuideLayoutStep6.addLayout(self.horizontalPersonCountLayout)
+                # diver
+                if i == 5:
+                    self.guideDiverCountLabel = QtGui.QLabel(self.dockWidgetContents)
+                    self.guideDiverCountLabel.setText(u"Potápěč")
+                    self.guideDiverCount = QLineEdit()
+                    self.guideDiverCount.setText(unicode_row[0])
+                    self.horizontalDiverCountLayout = QtGui.QHBoxLayout(self.tabGuideStep6)
+                    self.horizontalDiverCountLayout.addWidget(self.guideDiverCountLabel)
+                    self.horizontalDiverCountLayout.addWidget(self.guideDiverCount)
+                    self.verticalGuideLayoutStep6.addLayout(self.horizontalDiverCountLayout)
+                i=i+1
 
     def retranslateUi(self, PatracDockWidget):
         PatracDockWidget.setWindowTitle(QtGui.QApplication.translate(

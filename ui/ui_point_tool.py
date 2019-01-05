@@ -15,12 +15,16 @@ class PointMapTool(QgsMapTool):
       #Dialog for setting result output
       self.dialog = Ui_Result()
       self.DATAPATH = ''
+      self.searchid = ''
 
   def reset(self):
       self.point = None
 
   def setDataPath(self, DATAPATH):
       self.DATAPATH = DATAPATH
+
+  def setSearchid(self, searchid):
+      self.searchid = searchid
 
   def canvasPressEvent(self, e):
       self.point = self.toMapCoordinates(e.pos())
@@ -30,6 +34,7 @@ class PointMapTool(QgsMapTool):
           #print "Point: ", self.point.x()
           self.dialog.setPoint(self.point)
           self.dialog.setDataPath(self.DATAPATH)
+          self.dialog.setSearchid(self.searchid)
           self.dialog.show()
 
   #def deactivate(self):

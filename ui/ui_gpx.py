@@ -65,7 +65,7 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
         #self.path = '/media/gpx'
-        self.path = '/media/gpx/GARMIN'
+        self.path = '/tmp/GARMIN'
         self.DATAPATH = DATAPATH
         self.buttonBoxTime.accepted.connect(self.acceptTime)
         self.buttonBoxAll.accepted.connect(self.acceptAll)
