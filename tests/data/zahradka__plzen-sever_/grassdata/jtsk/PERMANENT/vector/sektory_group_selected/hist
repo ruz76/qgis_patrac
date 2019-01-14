@@ -17,4 +17,4 @@ LOCATION: jtsk MAPSET: PERMANENT USER: jencek DATE: Tue Jul 24 09:51:02 2018
 ---------------------------------------------------------------------------------
 COMMAND: v.select --overwrite ainput="sectors_group" alayer="1" atype="point,line,area" binput="distances_costed_cum_selected" blayer="1" btype="point,line,area" output="sektory_group_selected" operator="overlap"
 GISDBASE: /home/jencek/.qgis2/python/plugins/qgis_patrac/tests/data/zahradka__plzen-sever_/grassdata
-LOCATION: jtsk MAPSET: PERMANENT USER: jencek DATE: Mon Dec 17 19:30:35 2018
+LOCATION: jtsk MAPSET: PERMANENT USER: jencek DATE: Mon Jan 14 12:37:49 2019

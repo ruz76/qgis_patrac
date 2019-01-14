@@ -57,23 +57,31 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.pluginPath = pluginPath
         self.DATAPATH = DATAPATH
+        self.serverUrl = 'http://gisak.vsb.cz/patrac/mserver.php?'
         self.browseButton.clicked.connect(self.showBrowse)
         self.btnCheckAll.clicked.connect(self.checkAll)
         self.btnCheckNone.clicked.connect(self.checkNone)
         self.btnRefresh.clicked.connect(self.fillSearchersList)
+        self.pushButtonGpx.clicked.connect(self.addGpx)
         self.fillSearchersList()
         self.listWidgetHistory.setWordWrap(True)
         self.fillMessagesList()
         self.listWidgetHistory.scrollToBottom()
         self.listWidgetHistory.itemDoubleClicked.connect(self.messagesDoubleClick)
 
+    def addGpx(self):
+        self.lineEditPath.setText(self.DATAPATH + "/sektory/gpx/all.gpx")
+
     def messagesDoubleClick(self, item):
-        print item.text()
+        #print item.text()
         items = item.text().split("@")
         if (len(items) == 2):
             attachment = str(items[1]).strip()
             if len(attachment) > 2:
-                webbrowser.open("file://" + self.DATAPATH + "/pracovni/" + attachment)
+                if "/" in attachment or "\\" in attachment:
+                    webbrowser.open("file://" + attachment)
+                else:
+                    webbrowser.open("file://" + self.DATAPATH + "/pracovni/" + attachment)
 
     def fillMessagesList(self):
         #read file with messages and
@@ -94,9 +102,8 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         response = None
         # Connects to the server to obtain list of users based on list of locations
         try:
-            # response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=AAA111BBB', None, 5)
             response = urllib2.urlopen(
-                'http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=' + self.getSearchID(), None, 5)
+                self.serverUrl + 'operation=getlocations&searchid=' + self.getSearchID(), None, 5)
             locations = response.read()
             lines = locations.split("\n")
             # Loops via locations
@@ -127,8 +134,8 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
 
     def showBrowse(self):
         """Opens file dialog for browsing"""
-        filename1 = QFileDialog.getOpenFileName()
-        self.lineEditPath.setText(filename1)
+        filename = QFileDialog.getOpenFileName()
+        self.lineEditPath.setText(filename)
 
     def checkAll(self):
         i = 0
@@ -193,8 +200,7 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         if filename1:
             if os.path.isfile(filename1):
                 #If the file exists
-                #with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'}, files={'fileToUpload': f})
-                with open(filename1, 'rb') as f: r = requests.post('http://gisak.vsb.cz/patrac/mserver.php',
+                with open(filename1, 'rb') as f: r = requests.post(self.serverUrl,
                                                                    data={'message': message, 'ids': ids,
                                                                          'operation': 'insertmessages',
                                                                          'searchid': searchid,
@@ -210,7 +216,7 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         else:
             #If file is not specified then send without file
             #r = requests.post('http://gisak.vsb.cz/patrac/mserver.php', data = {'message': message, 'id': id, 'operation': 'insertmessage', 'searchid': 'AAA111BBB'})
-            r = requests.post('http://gisak.vsb.cz/patrac/mserver.php',
+            r = requests.post(self.serverUrl,
                               data={'message': message, 'ids': ids, 'operation': 'insertmessages',
                                     'searchid': searchid, 'from_id': 'coordinator' + searchid})
             QgsMessageLog.logMessage("Response: " + r.text, "Patrac")
@@ -224,16 +230,31 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         self.listWidgetHistory.item(0).setForeground(QColor(255, 0, 0, 255))
         self.listWidgetHistory.scrollToBottom()
 
+    def markMessageAsReaded(self, sysid):
+        response = None
+        # Connects to the server to mark message as readed
+        try:
+            response = urllib2.urlopen(
+                self.serverUrl + 'operation=markmessage&searchid='
+                + self.getSearchID() + '&id=coordinator' + self.getSearchID()
+                + '&sysid=' + sysid,
+                None, 5)
+            message = response.read()
+        except urllib2.URLError:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+        except socket.timeout:
+            QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+
     def getMessage(self):
         response = None
         # Connects to the server to obtain message for coordinator
         try:
             response = urllib2.urlopen(
-                'http://gisak.vsb.cz/patrac/mserver.php?operation=getmessages&searchid=' + self.getSearchID() + '&id=coordinator' + self.getSearchID(), None, 5)
+                self.serverUrl + 'operation=getmessages&searchid=' + self.getSearchID() + '&id=coordinator' + self.getSearchID(), None, 5)
             message = response.read()
-            print message
+            #print message
             cols = message.split(";")
-            if cols != None and len(cols) > 4:
+            if cols != None and len(cols) > 6:
                 attachment = False
                 if cols[3] != "":
                     self.getAttachment(cols[3], cols[5])
@@ -247,6 +268,8 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
                 # Stores message sinto file for archiving
                 with io.open(self.DATAPATH + "/pracovni/zpravy.txt", encoding='utf-8', mode="a") as messages:
                     messages.write(messageForView + "\n--------------------\n")
+                # mark message as readed
+                self.markMessageAsReaded(cols[7])
 
         except urllib2.URLError:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
@@ -263,9 +286,9 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
             else:
                 fileplacement = 'coordinator' + self.getSearchID()
 
-            print "FF: " + filename
-            url = 'http://gisak.vsb.cz/patrac/mserver.php?operation=getfile&searchid=' + self.getSearchID() + '&id=' + fileplacement + '&filename=' + filename
-            print "URL:" + url
+            #print "FF: " + filename
+            url = self.serverUrl + 'operation=getfile&searchid=' + self.getSearchID() + '&id=' + fileplacement + '&filename=' + filename
+            #print "URL:" + url
             # download the url contents in binary format
             r = requests.get(url)
 

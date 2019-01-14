@@ -78,6 +78,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.canvas = self.plugin.iface.mapCanvas()
         self.maxVal = 100
         self.minVal = 0
+        self.serverUrl = 'http://gisak.vsb.cz/patrac/mserver.php?'
 
         userPluginPath = QFileInfo(QgsApplication.qgisUserDbFilePath()).path() + "python/plugins/qgis_patrac"
         systemPluginPath = QgsApplication.prefixPath() + "python/plugins/qgis_patrac"
@@ -110,8 +111,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
         self.tbtnRecalculateSectors.clicked.connect(self.recalculateSectors)
         self.tbtnExportSectors.clicked.connect(self.exportSectors)
-        self.tbtnReportExportSectors.clicked.connect(self.reportExportSectors)
+        self.tbtnReportExportSectors.clicked.connect(self.runExpertReportExportSectors)
         self.tbtnShowSettings.clicked.connect(self.showSettings)
+        self.guideShowSettings.clicked.connect(self.showSettings)
         self.tbtnImportPaths.clicked.connect(self.showImportGpx)
         self.tbtnShowSearchers.clicked.connect(self.showPeople)
         self.tbtnShowSearchersTracks.clicked.connect(self.showPeopleTracks)
@@ -474,11 +476,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         response = None
         # Connects to the server to obtain list of users based on list of locations
         try:
-            # response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=AAA111BBB', None, 5)
             escaped_name = quote(name.encode('utf-8'))
-            url = 'http://gisak.vsb.cz/patrac/mserver.php?operation=createnewsearch&id=pcr007&searchid='\
+            url = self.serverUrl + 'operation=createnewsearch&id=pcr007&searchid='\
                   + searchid + '&description=' + escaped_name + '&region=' + region
-            print url
             response = urllib2.urlopen(url, None, 5)
             searchStatus = response.read()
         except urllib2.URLError:
@@ -960,8 +960,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                         distances_costed_cum = distances_costed_cum + ",(distances" + str(i) + "_costed/" + str(
                             feature["vaha"]) + ")"
                     i += 1
-                print
-                "DC: min(" + distances_costed_cum + ")*" + str(max_weight)
+                #print "DC: min(" + distances_costed_cum + ")*" + str(max_weight)
                 self.createCumulativeArea("min(" + distances_costed_cum + ")*" + str(max_weight))
         else:
             self.generateRadialOnPoint(features[0])
@@ -1031,6 +1030,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
     def runExpertGetSectors(self):
         self.getSectors(self.sliderStart.value(), self.sliderEnd.value())
+
+    def runExpertReportExportSectors(self):
+        self.reportExportSectors(True, True)
 
     def runGuideGetSectors(self):
         self.getSectors(0, self.guideSpinEnd.value())
@@ -1184,8 +1186,15 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 QgsVectorFileWriter.writeAsVectorFormat(sector, DATAPATH + "/sektory/gpx/" + feature['label'] + ".gpx",
                                                         "utf-8", crs, "GPX",
                                                         datasourceOptions=['GPX_USE_EXTENSIONS=YES',
-                                                                           'GPX_FORCE_TRACK=YES'])
-                QgsMapLayerRegistry.instance().addMapLayer(sector)
+                                                                           'FORCE_GPX_TRACK=YES'])
+                QgsMapLayerRegistry.instance().addMapLayer(sector, False)
+                root = QgsProject.instance().layerTreeRoot()
+                sektorygroup = root.findGroup("sektory")
+                if sektorygroup is None:
+                    sektorygroup = root.insertGroup(0, "sektory")
+                sektorygroup.addLayer(sector)
+                sektorygroup.setExpanded(False)
+
             i += 1
 
         self.setCursor(Qt.ArrowCursor)
@@ -1319,8 +1328,14 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 QgsVectorFileWriter.writeAsVectorFormat(sector, DATAPATH + "/sektory/gpx/" + feature['label'] + ".gpx",
                                                         "utf-8", crs, "GPX",
                                                         datasourceOptions=['GPX_USE_EXTENSIONS=YES',
-                                                                           'GPX_FORCE_TRACK=YES'])
-                QgsMapLayerRegistry.instance().addMapLayer(sector)
+                                                                           'FORCE_GPX_TRACK=YES'])
+                QgsMapLayerRegistry.instance().addMapLayer(sector, False)
+                root = QgsProject.instance().layerTreeRoot()
+                sektorygroup = root.findGroup("sektory")
+                if sektorygroup is None:
+                    sektorygroup = root.insertGroup(0, "sektory")
+                sektorygroup.addLayer(sector)
+                sektorygroup.setExpanded(False)
 
             # Writes link to PDF and GPX
             #f.write(u'<p><a href="pdf/' + feature['label'] + '.pdf"><img src="styles/pdf.png" alt="PDF" width="40"></a>&nbsp;<a href="gpx/'+ feature['label'] +'.gpx"><img src="styles/gpx.png" alt="GPX" width="40"></a></p>\n')
@@ -1335,7 +1350,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         QgsVectorFileWriter.writeAsVectorFormat(layerLines, DATAPATH + "/sektory/gpx/all.gpx",
                                                 "utf-8", crs, "GPX",
                                                 datasourceOptions=['GPX_USE_EXTENSIONS=YES',
-                                                                   'GPX_FORCE_TRACK=YES'])
+                                                                   'FORCE_GPX_TRACK=YES'])
 
         #Writes styles
         f.write(u"<style>")
@@ -1384,6 +1399,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
     def showSettings(self):
         """Shows the settings dialog"""
+        self.settingsdlg.updateSettings()
         self.settingsdlg.show()
 
     def showMessage(self):
@@ -1682,7 +1698,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         try:
             # Connects the server with log
             response = urllib2.urlopen(
-                'http://gisak.vsb.cz/patrac/mserver.php?operation=gettracks&searchid=' + self.getSearchID(), None, 20)
+                self.serverUrl + 'operation=gettracks&searchid=' + self.getSearchID(), None, 20)
             # Reads locations from response
             locations = response.read()
             # Splits to lines
@@ -1748,12 +1764,12 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layer.deleteFeatures(listOfIds)
         response = None
         try:
-            # Connects the server with log
-            # response = urllib2.urlopen('http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=' + self.getSearchID(), None, 5)
+            # Connects the server with locations
             response = urllib2.urlopen(
-                'http://gisak.vsb.cz/patrac/mserver.php?operation=getlocations&searchid=' + self.getSearchID(), None, 5)
+                self.serverUrl + 'operation=getlocations&searchid=' + self.getSearchID(), None, 5)
             # Reads locations from response
             locations = response.read()
+            # print("LOCATIONS: " + locations)
             # Splits to lines
             lines = locations.split("\n")
             # Loops the lines

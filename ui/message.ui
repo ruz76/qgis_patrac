@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>733</width>
-    <height>548</height>
+    <width>964</width>
+    <height>542</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,7 @@
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>610</x>
      <y>500</y>
      <width>341</width>
      <height>32</height>
@@ -42,10 +42,10 @@
   <widget class="QPushButton" name="browseButton">
    <property name="geometry">
     <rect>
-     <x>290</x>
+     <x>670</x>
      <y>460</y>
      <width>99</width>
-     <height>27</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="text">
@@ -57,8 +57,8 @@
     <rect>
      <x>10</x>
      <y>460</y>
-     <width>271</width>
-     <height>27</height>
+     <width>651</width>
+     <height>31</height>
     </rect>
    </property>
   </widget>
@@ -67,8 +67,8 @@
     <rect>
      <x>400</x>
      <y>10</y>
-     <width>321</width>
-     <height>521</height>
+     <width>551</width>
+     <height>441</height>
     </rect>
    </property>
   </widget>
@@ -119,6 +119,19 @@
    </property>
    <property name="text">
     <string>Obnovit</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButtonGpx">
+   <property name="geometry">
+    <rect>
+     <x>780</x>
+     <y>460</y>
+     <width>171</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Vložit GPX</string>
    </property>
   </widget>
  </widget>

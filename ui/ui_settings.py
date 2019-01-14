@@ -39,6 +39,9 @@ import webbrowser
 import urllib2
 import socket
 import requests, json
+import tempfile
+import zipfile
+from shutil import copy
 #import qrcode
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -52,6 +55,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.pluginPath = pluginPath
         self.main = parent
+        self.serverUrl = 'http://gisak.vsb.cz/patrac/mserver.php?'
         self.comboBoxDistance.addItem(u"LSOM")
         self.comboBoxDistance.addItem(u"Hill")
         self.comboBoxDistance.addItem(u"UK")
@@ -78,7 +82,6 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.pushButtonPutToSleep.clicked.connect(self.putToSleep)
         self.pushButtonShowHelp.clicked.connect(self.showHelp)
         self.buttonBox.accepted.connect(self.accept)
-        self.showPath()
 
     def updateSettings(self):
         self.showSearchId()
@@ -99,11 +102,80 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.main.testHds()
 
     def updatePlugin(self):
-        shutil.copy("/tmp/aboutdialog.py", self.pluginPath + "/aboutdialog.py")
-        utils.reloadPlugin('qgis_patrac');
+        currentVersion = self.getCurrentVersion()
+        installedVersion = self.getInstalledVersion()
+        if currentVersion != "" and currentVersion != installedVersion:
+            msg = u"K dispozici je nová verze. Chcete ji instalovat?"
+            install = QMessageBox.question(self.main.iface.mainWindow(), u"Nová verze", msg, QMessageBox.Yes,
+                                       QMessageBox.No)
+            if install == QMessageBox.Yes:
+                self.downloadPlugin(currentVersion)
+                msg = u"Nová verze byla nainstalována. Dojde k obnovení pluginu do výchozí pozice."
+                QMessageBox.information(self.main.iface.mainWindow(), u"Nová verze", msg)
+                utils.reloadPlugin('qgis_patrac');
+                self.done(0)
+        else:
+            msg = u"Máte aktuální verzi"
+            QMessageBox.information(self.main.iface.mainWindow(), u"Nová verze", msg)
+        #shutil.copy("/tmp/aboutdialog.py", self.pluginPath + "/aboutdialog.py")
+
+    def getCurrentVersion(self):
+        content = self.getDataFromUrl("https://raw.githubusercontent.com/ruz76/qgis_patrac/master/RELEASE", 5)
+        return content.strip()
+
+    def getInstalledVersion(self):
+        fname = self.pluginPath + "/RELEASE"
+        with open(fname) as f:
+            content = f.readline().strip()
+            return content
+
+    def downloadPlugin(self, release):
+        pluginPath = self.pluginPath
+        pluginsPath = os.path.abspath(os.path.join(pluginPath, ".."))
+        url = "https://github.com/ruz76/qgis_patrac/archive/" + release + ".zip"
+        os.umask(0002)
+        try:
+            req = urllib2.urlopen(url)
+            totalSize = 16800000
+            if req.info().getheader('Content-Length') is not None:
+                totalSize = int(req.info().getheader('Content-Length').strip())
+            downloaded = 0
+            CHUNK = 256 * 1024
+            self.progressBarUpdatePlugin.setMinimum(0)
+            self.progressBarUpdatePlugin.setMaximum(totalSize)
+            zipTemp = tempfile.NamedTemporaryFile(mode='w+b', suffix='.zip', delete=False)
+            zipTempName = zipTemp.name
+            zipTemp.seek(0)
+            with open(zipTempName, 'wb') as fp:
+                while True:
+                    chunk = req.read(CHUNK)
+                    downloaded += len(chunk)
+                    self.show()
+                    self.progressBarUpdatePlugin.setValue(downloaded)
+                    if not chunk:
+                        break
+                    fp.write(chunk)
+            pluginZip = zipfile.ZipFile(zipTemp)
+            pluginZip.extractall(pluginsPath)
+            zipTemp.close()
+            self.copySettingsFiles(pluginPath, pluginsPath + "/qgis_patrac-" + release[1:])
+            #shutil.rmtree(pluginPath)
+            qgisPath = os.path.abspath(os.path.join(pluginsPath, "../.."))
+            shutil.move(pluginPath, qgisPath + "/cache/qgis_patrac_"+ str(datetime.datetime.now().timestamp()))
+            shutil.move(pluginsPath + "/qgis_patrac-" + release[1:], pluginPath)
+        except urllib2.HTTPError, e:
+            QMessageBox.information(self.main.iface.mainWindow(), "HTTP Error", u"Nemohu stáhnout plugin")
+
+    def copySettingsFiles(self, sourceDirectory, targetDirectory):
+        copy(sourceDirectory + "/config/systemid.txt", targetDirectory + "/config/systemid.txt")
+        copy(sourceDirectory + "/grass/distances.txt", targetDirectory + "/grass/distances.txt")
+        copy(sourceDirectory + "/grass/radialsettings.txt", targetDirectory + "/grass/radialsettings.txt")
+        copy(sourceDirectory + "/grass/units.txt", targetDirectory + "/grass/units.txt")
+        copy(sourceDirectory + "/grass/weightlimit.txt", targetDirectory + "/grass/weightlimit.txt")
+        copy(sourceDirectory + "/xslt/saxon9he.jar", targetDirectory + "/xslt/saxon9he.jar")
 
     def updateData(self):
-        QMessageBox.information(None, "NOT IMPLEMENTED", "Tato funkce není zatím implementována")
+        QMessageBox.information(None, "NOT IMPLEMENTED", u"Tato funkce není zatím implementována")
 
     def showHelp(self):
         webbrowser.open("file://" + self.pluginPath + "/doc/intro.html")
@@ -158,7 +230,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         try:
             # TODO change hardcoded value for ids to values from table
             response = urllib2.urlopen(
-                'http://gisak.vsb.cz/patrac/mserver.php?operation=changestatus&id=pcr1234&status_to='+status+'&ids='+ids+"&searchid="+searchid, None, 5)
+                self.serverUrl + 'operation=changestatus&id=pcr1234&status_to='+status+'&ids='+ids+"&searchid="+searchid, None, 5)
             changed = response.read()
             self.refreshSystemUsers()
             QgsMessageLog.logMessage(changed, "Patrac")
@@ -179,12 +251,14 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
             self.fillTableWidgetSystemUsers(list, self.tableWidgetSystemUsers)
 
     def getSystemUsers(self):
+        # TODO change hardcoded value for id to value from configuration
+        return self.getDataFromUrl(self.serverUrl + 'operation=getsystemusers&id=pcr1234', 5)
+
+    def getDataFromUrl(self, url, timeout):
         response = None
         # Connects to the server to obtain list of users based on list of locations
         try:
-            # TODO change hardcoded value for id to value from configuration
-            response = urllib2.urlopen(
-                'http://gisak.vsb.cz/patrac/mserver.php?operation=getsystemusers&id=pcr1234', None, 5)
+            response = urllib2.urlopen(url, None, timeout)
             system_users = response.read()
             return system_users
         except urllib2.URLError:
@@ -287,11 +361,11 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                 value = self.tableWidgetUnits.item(i, j).text()
                 if value == '':
                     value = '0'
-                unicode_value = self.get_unicode(value)
+                unicodeValue = self.getUnicode(value)
                 if j == 0:
-                    f.write(unicode_value)
+                    f.write(unicodeValue)
                 else:
-                    f.write(u";" + unicode_value)
+                    f.write(u";" + unicodeValue)
             f.write(u"\n")
         f.close()
         #According to the selected distances combo is copied one of the distances file to the distances.txt
@@ -322,24 +396,24 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
             f.write("0")
         f.close()
 
-    def if_number_get_string(self, number):
+    def ifNumberGetString(self, number):
         """Converts number to string"""
-        converted_str = number
+        convertedStr = number
         if isinstance(number, int) or \
                 isinstance(number, float):
-            converted_str = str(number)
-        return converted_str
+            convertedStr = str(number)
+        return convertedStr
 
-    def get_unicode(self, strOrUnicode, encoding='utf-8'):
+    def getUnicode(self, strOrUnicode, encoding='utf-8'):
         """Converts string to unicode"""
-        strOrUnicode = self.if_number_get_string(strOrUnicode)
+        strOrUnicode = self.ifNumberGetString(strOrUnicode)
         if isinstance(strOrUnicode, unicode):
             return strOrUnicode
         return unicode(strOrUnicode, encoding, errors='ignore')
 
-    def get_string(self, strOrUnicode, encoding='utf-8'):
+    def getString(self, strOrUnicode, encoding='utf-8'):
         """Converts unicode to string"""
-        strOrUnicode = self.if_number_get_string(strOrUnicode)
+        strOrUnicode = self.ifNumberGetString(strOrUnicode)
         if isinstance(strOrUnicode, unicode):
             return strOrUnicode.encode(encoding)
         return strOrUnicode

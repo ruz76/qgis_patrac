@@ -209,15 +209,14 @@ class Ui_PatracDockWidget(object):
         self.tbtnShowMessage.setToolTip(
             QtGui.QApplication.translate("PatracDockWidget", "Zprávy", None, QtGui.QApplication.UnicodeUTF8))
 
-
         self.tbtnInsertFinal = QtGui.QPushButton(self.dockWidgetContents)
         self.tbtnInsertFinal.setObjectName(_fromUtf8("tbtnInsertFinal"))
         self.tbtnInsertFinal.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "set_result.png")));
         self.tbtnInsertFinal.setIconSize(QSize(32, 32));
         self.tbtnInsertFinal.setFixedSize(QSize(42, 42));
-        self.horizontalLayoutToolbar_5.addWidget(self.tbtnInsertFinal)
         self.tbtnInsertFinal.setToolTip(QtGui.QApplication.translate(
-            "PatracDockWidget", "Nález", None, QtGui.QApplication.UnicodeUTF8))
+            "PatracDockWidget", "Zadat výsledek", None, QtGui.QApplication.UnicodeUTF8))
+        self.horizontalLayoutToolbar_5.addWidget(self.tbtnInsertFinal)
 
         self.verticalLayout.addLayout(self.horizontalLayoutToolbar_5)
 
@@ -380,7 +379,7 @@ class Ui_PatracDockWidget(object):
         self.verticalGuideLayoutStep7.setObjectName(_fromUtf8("verticalGuideLayoutStep7"))
         self.guideLabelStep7 = QtGui.QLabel(self.dockWidgetContents)
         self.guideLabelStep7.setObjectName(_fromUtf8("guideLabelStep7"))
-        self.guideLabelStep7.setText(u"Téměř dokončeno. Report obsahuje odkazy na PDF pro tisk a GPX pro GPS přijímače. PDF zatín nebyly vygenerovány. Generování PDF může trvat poměrně dlouho (řádově minuty). \nNezapomeňte zadat výsledek pátrání.")
+        self.guideLabelStep7.setText(u"Téměř dokončeno. Report obsahuje odkazy na PDF pro tisk a GPX pro GPS přijímače. PDF zatím nebyly vygenerovány. Generování PDF může trvat poměrně dlouho (řádově minuty). \nNezapomeňte zadat výsledek pátrání.")
         self.guideLabelStep7.setWordWrap(True)
         self.verticalGuideLayoutStep7.addWidget(self.guideLabelStep7)
         self.chkGenerateOverallPDF = QtGui.QCheckBox(self.dockWidgetContents)
@@ -393,10 +392,29 @@ class Ui_PatracDockWidget(object):
         self.guideShowReport.setObjectName(_fromUtf8("guideInsertFinal"))
         self.guideShowReport.setText(u"Zobrazit report")
         self.verticalGuideLayoutStep7.addWidget(self.guideShowReport)
+
+        self.horizontalLayoutToolbarGuide7 = QtGui.QHBoxLayout()
+        self.horizontalLayoutToolbarGuide7.setObjectName(_fromUtf8("horizontalLayoutToolbarGuide7"))
+
         self.guideInsertFinal = QtGui.QPushButton(self.dockWidgetContents)
         self.guideInsertFinal.setObjectName(_fromUtf8("guideInsertFinal"))
-        self.guideInsertFinal.setText(u"Zadat výsledek")
-        self.verticalGuideLayoutStep7.addWidget(self.guideInsertFinal)
+        self.guideInsertFinal.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "set_result.png")));
+        self.guideInsertFinal.setIconSize(QSize(32, 32));
+        self.guideInsertFinal.setFixedSize(QSize(42, 42));
+        self.guideInsertFinal.setToolTip(QtGui.QApplication.translate(
+            "PatracDockWidget", "Zadat výsledek", None, QtGui.QApplication.UnicodeUTF8))
+        self.horizontalLayoutToolbarGuide7.addWidget(self.guideInsertFinal)
+
+        self.guideShowSettings = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideShowSettings.setObjectName(_fromUtf8("guideShowSettings"))
+        self.guideShowSettings.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "settings.png")));
+        self.guideShowSettings.setIconSize(QSize(32, 32));
+        self.guideShowSettings.setFixedSize(QSize(42, 42));
+        self.guideShowSettings.setToolTip(
+            QtGui.QApplication.translate("PatracDockWidget", "Nastavení", None, QtGui.QApplication.UnicodeUTF8))
+        self.horizontalLayoutToolbarGuide7.addWidget(self.guideShowSettings)
+
+        self.verticalGuideLayoutStep7.addLayout(self.horizontalLayoutToolbarGuide7)
         self.tabGuideStep7.setLayout(self.verticalGuideLayoutStep7)
 
     def loadAvailableUnits(self):
