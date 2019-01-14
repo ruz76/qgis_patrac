@@ -133,6 +133,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         pluginPath = self.pluginPath
         pluginsPath = os.path.abspath(os.path.join(pluginPath, ".."))
         url = "https://github.com/ruz76/qgis_patrac/archive/" + release + ".zip"
+        #url = "http://gisak.vsb.cz/patrac/qgis/qgis_patrac_20190114.zip"
         os.umask(0002)
         try:
             req = urllib2.urlopen(url)
@@ -163,8 +164,10 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
             qgisPath = os.path.abspath(os.path.join(pluginsPath, "../.."))
             shutil.move(pluginPath, qgisPath + "/cache/qgis_patrac_"+ str(datetime.datetime.now().timestamp()))
             shutil.move(pluginsPath + "/qgis_patrac-" + release[1:], pluginPath)
-        except urllib2.HTTPError, e:
-            QMessageBox.information(self.main.iface.mainWindow(), "HTTP Error", u"Nemohu stáhnout plugin")
+        except urllib2.HTTPError:
+            QMessageBox.information(self.main.iface.mainWindow(), "HTTP Error", u"Nemohu stáhnout plugin z: " + url)
+        except urllib2.URLError:
+            QMessageBox.information(self.main.iface.mainWindow(), "HTTP Error", u"Nemohu stáhnout plugin z: " + url)
 
     def copySettingsFiles(self, sourceDirectory, targetDirectory):
         copy(sourceDirectory + "/config/systemid.txt", targetDirectory + "/config/systemid.txt")
@@ -332,10 +335,10 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         # Reads CSV and populate the table
         with open(self.pluginPath + fileName, "rb") as fileInput:
             i=0
-            for row in csv.reader(fileInput, delimiter=','):    
+            for row in csv.reader(fileInput, delimiter=','):
                 j=0
                 for field in row:
-                    tableWidget.setItem(i, j, QtGui.QTableWidgetItem(field))                    
+                    tableWidget.setItem(i, j, QtGui.QTableWidgetItem(field))
                     j=j+1
                 i=i+1
 
@@ -346,7 +349,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         for i in range(0, 10):
             for j in range(0, 9):
                 value = self.tableWidgetDistancesUser.item(i, j).text()
-                if value == '': 
+                if value == '':
                     value = '0'
                 if j == 0:
                     f.write(value)
