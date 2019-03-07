@@ -114,8 +114,8 @@ print gscript.read_command('r.in.ascii', output='landuse', input=DATAPATH+'/gras
 #Imports friction_slope
 #Bin would be better (size is smaller, export is faster), but there are some problems with import
 print gscript.read_command('r.in.ascii', output='friction_slope', input=DATAPATH+'/grassdata/friction_slope.ascii', overwrite=True)
-#Problem with null data - set to 10
-print gscript.read_command('r.null', map='friction_slope', null='10')
+#Problem with null data - set to 10000
+# print gscript.read_command('r.null', map='friction_slope', null='10000')
 #Imports sectors and select them according to Extent
 #Bin would be better (size is smaller, export is faster), but there are some problems with import
 

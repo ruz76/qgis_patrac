@@ -699,6 +699,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def setCompleter(self, textBox):
         """Sets the autocompleter for municipalitities."""
         completer = QCompleter()
+        completer.setCaseSensitivity(Qt.CaseInsensitive)
         textBox.setCompleter(completer)
         model = QStringListModel()
         completer.setModel(model)
@@ -952,13 +953,15 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 for feature in features:
                     self.generateRadialOnPoint(feature)
                     self.findAreaWithRadial(feature, i)
-                    if feature["vaha"] > max_weight:
+                    cur_weight = "1"
+                    if str(feature["vaha"]) != "NULL":
+                        cur_weight = str(feature["vaha"])
+                    if str(feature["vaha"]) != "NULL" and feature["vaha"] > max_weight:
                         max_weight = feature["vaha"]
                     if (i == 0):
-                        distances_costed_cum = "(distances0_costed/" + str(feature["vaha"]) + ")"
+                        distances_costed_cum = "(distances0_costed/" + cur_weight + ")"
                     else:
-                        distances_costed_cum = distances_costed_cum + ",(distances" + str(i) + "_costed/" + str(
-                            feature["vaha"]) + ")"
+                        distances_costed_cum = distances_costed_cum + ",(distances" + str(i) + "_costed/" + cur_weight + ")"
                     i += 1
                 #print "DC: min(" + distances_costed_cum + ")*" + str(max_weight)
                 self.createCumulativeArea("min(" + distances_costed_cum + ")*" + str(max_weight))

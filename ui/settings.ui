@@ -32,14 +32,14 @@
   <widget class="QTabWidget" name="tabWidget">
    <property name="geometry">
     <rect>
-     <x>0</x>
+     <x>10</x>
      <y>10</y>
      <width>911</width>
      <height>441</height>
     </rect>
    </property>
    <property name="currentIndex">
-    <number>5</number>
+    <number>4</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -670,7 +670,7 @@
     <widget class="QPushButton" name="pushButtonCallOnDuty">
      <property name="geometry">
       <rect>
-       <x>140</x>
+       <x>520</x>
        <y>10</y>
        <width>112</width>
        <height>31</height>
@@ -683,7 +683,7 @@
     <widget class="QPushButton" name="pushButtonPutToSleep">
      <property name="geometry">
       <rect>
-       <x>400</x>
+       <x>780</x>
        <y>10</y>
        <width>112</width>
        <height>31</height>
@@ -696,7 +696,7 @@
     <widget class="QPushButton" name="pushButtonJoinSearch">
      <property name="geometry">
       <rect>
-       <x>270</x>
+       <x>650</x>
        <y>10</y>
        <width>112</width>
        <height>31</height>
@@ -704,6 +704,19 @@
      </property>
      <property name="text">
       <string>Vyzvat</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButtonGetSystemUsersShedule">
+     <property name="geometry">
+      <rect>
+       <x>140</x>
+       <y>10</y>
+       <width>201</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Obnovovat automaticky</string>
      </property>
     </widget>
    </widget>

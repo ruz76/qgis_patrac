@@ -42,7 +42,20 @@ import requests, json
 import tempfile
 import zipfile
 from shutil import copy
+import sched, time
 #import qrcode
+
+class PeriodicScheduler(object):
+    def __init__(self):
+        self.scheduler = sched.scheduler(time.time, time.sleep)
+
+    def setup(self, interval, action, actionargs=()):
+        action(*actionargs)
+        self.scheduler.enter(interval, 1, self.setup,
+                             (interval, action, actionargs))
+
+    def run(self):
+        self.scheduler.run()
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'settings.ui'))
@@ -83,6 +96,18 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.pushButtonShowHelp.clicked.connect(self.showHelp)
         self.buttonBox.accepted.connect(self.accept)
 
+        # set up empty sheduler
+        self.pushButtonGetSystemUsersShedule.clicked.connect(self.refreshSystemUsersSetSheduler)
+        self.periodic_scheduler = None
+
+    def refreshSystemUsersSetSheduler(self):
+        QMessageBox.information(None, "NOT IMPLEMENTED", u"Tato funkce není zatím implementována")
+        #if self.periodic_scheduler is None:
+        #    INTERVAL = 5  # every second
+        #    periodic_scheduler = PeriodicScheduler()
+        #    periodic_scheduler.setup(INTERVAL, self.refreshSystemUsers)  # it executes the event just once
+        #    periodic_scheduler.run()  # it starts the scheduler
+
     def updateSettings(self):
         self.showSearchId()
         self.showPath()
@@ -91,8 +116,12 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         # Fills textEdit with SearchID
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
-        self.searchID = open(DATAPATH + "/config/searchid.txt", 'r').read()
-        self.lineEditSearchID.setText(self.searchID)
+        if DATAPATH != "" and QFileInfo(DATAPATH + "/config/searchid.txt").exists():
+            self.searchID = open(DATAPATH + "/config/searchid.txt", 'r').read()
+            self.lineEditSearchID.setText(self.searchID)
+        else:
+            msg = u"Nemohu najít konfigurační soubor s identifikátorem pátrání. Některé funkce nebudou dostupné."
+            QMessageBox.information(self.main.iface.mainWindow(), u"Chybný projekt", msg)
 
     def showPath(self):
         prjfi = QFileInfo(QgsProject.instance().fileName())
@@ -115,7 +144,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                 utils.reloadPlugin('qgis_patrac');
                 self.done(0)
         else:
-            msg = u"Máte aktuální verzi"
+            msg = u"Máte aktuální verzi: " + currentVersion
             QMessageBox.information(self.main.iface.mainWindow(), u"Nová verze", msg)
         #shutil.copy("/tmp/aboutdialog.py", self.pluginPath + "/aboutdialog.py")
 
@@ -132,8 +161,8 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
     def downloadPlugin(self, release):
         pluginPath = self.pluginPath
         pluginsPath = os.path.abspath(os.path.join(pluginPath, ".."))
-        url = "https://github.com/ruz76/qgis_patrac/archive/" + release + ".zip"
-        #url = "http://gisak.vsb.cz/patrac/qgis/qgis_patrac_20190114.zip"
+        #url = "https://github.com/ruz76/qgis_patrac/archive/" + release + ".zip"
+        url = "http://gisak.vsb.cz/patrac/qgis/" + release + ".zip"
         os.umask(0002)
         try:
             req = urllib2.urlopen(url)
@@ -162,7 +191,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
             self.copySettingsFiles(pluginPath, pluginsPath + "/qgis_patrac-" + release[1:])
             #shutil.rmtree(pluginPath)
             qgisPath = os.path.abspath(os.path.join(pluginsPath, "../.."))
-            shutil.move(pluginPath, qgisPath + "/cache/qgis_patrac_"+ str(datetime.datetime.now().timestamp()))
+            shutil.move(pluginPath, qgisPath + "/cache/qgis_patrac_"+ str(time.time()))
             shutil.move(pluginsPath + "/qgis_patrac-" + release[1:], pluginPath)
         except urllib2.HTTPError:
             QMessageBox.information(self.main.iface.mainWindow(), "HTTP Error", u"Nemohu stáhnout plugin z: " + url)
@@ -223,15 +252,52 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
             #print(self.tableWidgetSystemUsers.item(row.row(), 0).text());
         return ids
 
+    def getSelectedSystemUsersStatuses(self):
+        rows = self.tableWidgetSystemUsers.selectionModel().selectedRows()
+        statuses=""
+        first = True
+        for row in rows:
+            if first:
+                statuses = statuses + self.tableWidgetSystemUsers.item(row.row(), 2).text()
+            else:
+                statuses = statuses + ";" + self.tableWidgetSystemUsers.item(row.row(), 2).text()
+            first = False
+            #ids.append(self.tableWidgetSystemUsers.item(row.row(), 0).text())
+            #print(self.tableWidgetSystemUsers.item(row.row(), 0).text());
+        return statuses
+
+    def removeSleepingSystemUsers(self, ids, statuses):
+        idsList = ids.split(";")
+        statusesList = statuses.split(";")
+        idsListOut = []
+        for i in range(len(idsList)):
+            if statusesList[i] != "sleeping" and statusesList[i] != "released":
+                idsListOut.append(idsList[i])
+
+        idsOutput = ""
+        first = True
+        for id in idsListOut:
+            if first:
+                idsOutput = idsOutput + id
+            else:
+                idsOutput = idsOutput + ";" + id
+            first = False
+        return idsOutput
+
     def setStatus(self, status, searchid):
         response = None
-        ids = self.getSelectedSystemUsers()
+        idsSelected = self.getSelectedSystemUsers()
+        statuses = self.getSelectedSystemUsersStatuses()
+        ids = self.removeSleepingSystemUsers(idsSelected, statuses)
+        if len(ids) != len(idsSelected):
+            QMessageBox.information(None, "INFO:",
+                                    u"Někteří vybraní uživatelé jsou ve stavu sleeping nebo released. Je nutné počkat až se sami probudí.")
         if ids == "":
-            QMessageBox.information(None, "INFO:", u"Nevybrali jste žádného uživatele.")
+            QMessageBox.information(None, "INFO:", u"Nevybrali jste žádného uživatele, kterého by šlo oslovit.")
             return
         # Connects to the server to call the selected users on duty
         try:
-            # TODO change hardcoded value for ids to values from table
+            # TODO change hardcoded value for id
             response = urllib2.urlopen(
                 self.serverUrl + 'operation=changestatus&id=pcr1234&status_to='+status+'&ids='+ids+"&searchid="+searchid, None, 5)
             changed = response.read()
@@ -241,7 +307,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         except urllib2.URLError:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             return ""
-        except e:
+        except urllib2.HTTPError:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             return ""
         except socket.timeout:
@@ -267,7 +333,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         except urllib2.URLError:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             return ""
-        except e:
+        except urllib2.HTTPError:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             return ""
         except socket.timeout:

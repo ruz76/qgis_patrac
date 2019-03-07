@@ -172,6 +172,7 @@ print gscript.read_command('r.mapcalc', expression='distances' + PLACE_ID + '_co
 cat=2
 #Percentage for distances
 variables = [10, 20, 30, 40, 50, 60, 70, 80, 95]
+PREVMIN = 0
 for i in variables:
     print i
     #Writes rules for the category so we have only one ring in the output
@@ -194,7 +195,9 @@ for i in variables:
         MAX = float(stats['max'])
         print str(MAX)
         #Minimum value and maximum value is used as extent for relass of the whole cost layer
-        rules_percentage_f.write(str(MIN) + ' thru ' + str(MAX) + ' = ' + str(i) + '\n')
+        #rules_percentage_f.write(str(MIN) + ' thru ' + str(MAX) + ' = ' + str(i) + '\n')
+        rules_percentage_f.write(str(PREVMIN) + ' thru ' + str(MIN) + ' = ' + str(i) + '\n')
+        PREVMIN = MIN
     except:
         print "Problem with category " + str(cat) + " " + str(i) + "%"
     cat = cat + 1
