@@ -588,6 +588,11 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.tabGuideSteps.setCurrentIndex(4)
 
     def runGuideStep5Next(self):
+        # set percent of visibility
+        self.spinStart.setValue(0)
+        self.spinEnd.setValue(self.guideSpinEnd.value())
+        self.updatePatrac()
+
         # move to next tab (tab 6)
         self.tabGuideSteps.setCurrentIndex(5)
 
@@ -775,6 +780,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layer = self.plugin.iface.mapCanvas().currentLayer()
         layer.setCacheImage(None)
         layer.renderer().rasterTransparency().setTransparentSingleValuePixelList(transparencyList)
+        layer.renderer().setOpacity(0.5)
         self.plugin.iface.mapCanvas().refresh()
 
     def __updateSpinStart(self, value):
