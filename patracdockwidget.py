@@ -60,6 +60,8 @@ import webbrowser
 import filecmp
 import uuid
 
+from PyQt4.QtCore import QSettings
+
 class ZPM_Raster():
     def __init__(self, name, distance, xmin, ymin, xmax, ymax):
         self.name = name
@@ -465,6 +467,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         DATAPATH = self.getSimpleProjectDataPath()
 
         NEW_PROJECT_PATH = DATAPATH + "/../../../kraje/" + region + "/projekty/" + NAMESAFE
+        # set working dir to new path
+        QSettings().setValue("UI/lastProjectDir", DATAPATH + "/../../../kraje/" + region + "/projekty/" + NAMESAFE)
+
         TEMPLATES_PATH = DATAPATH + "/../../../kraje/templates"
         KRAJ_DATA_PATH = DATAPATH + "/../../../kraje/" + region
         self.copyTemplate(NEW_PROJECT_PATH, TEMPLATES_PATH, NAMESAFE)
