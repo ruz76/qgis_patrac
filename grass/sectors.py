@@ -111,5 +111,5 @@ print gscript.read_command('v.select', ainput='sectors_group', binput='distances
 #Linux
 #print gscript.read_command('v.out.ogr', input='sektory_group_selected', output=DATAPATH +'/pracovni/', overwrite=True)
 #Windows
-print gscript.read_command('v.out.ogr', input='sektory_group_selected', output=DATAPATH +'/pracovni/sektory_group_selected.shp', overwrite=True)
+print gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='sektory_group_selected', output=DATAPATH +'/pracovni/sektory_group_selected.shp', overwrite=True)
 ##print gscript.read_command('v.out.ogr', input='sektory_group_selected', output='C:/TEMP/sektory_group_selected.shp', overwrite=True)

@@ -167,11 +167,10 @@ rules_percentage_f = open(PLUGIN_PATH + '/grass/rules_percentage.txt', 'w')
 #Creates empty raster with zero values
 print gscript.read_command('r.mapcalc', expression='distances' + PLACE_ID + '_costed = 0', overwrite=True)
 
-#Have no idea why cat=2
-#Maybe the cat=1 is the point from the search is done
-cat=2
+# we have to start on cat 3, so on min of the ring for 20%
+cat=3
 #Percentage for distances
-variables = [10, 20, 30, 40, 50, 60, 70, 80, 95]
+variables = [10, 20, 30, 40, 50, 60, 70, 80]
 PREVMIN = 0
 for i in variables:
     print i
@@ -201,6 +200,9 @@ for i in variables:
     except:
         print "Problem with category " + str(cat) + " " + str(i) + "%"
     cat = cat + 1
+
+#Add 95% category
+rules_percentage_f.write(str(PREVMIN) + ' thru ' + str(MAX) + ' = 95\n')
 
 #Finish reclass rules
 rules_percentage_f.write('end')

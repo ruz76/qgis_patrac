@@ -109,7 +109,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # Button of GetSectors
         self.tbtnGetSectors.clicked.connect(self.runExpertGetSectors)
 
-        self.tbtnRecalculateSectors.clicked.connect(self.recalculateSectors)
+        self.tbtnRecalculateSectors.clicked.connect(self.recalculateSectorsExpert)
         self.tbtnExportSectors.clicked.connect(self.exportSectors)
         self.tbtnReportExportSectors.clicked.connect(self.runExpertReportExportSectors)
         self.tbtnShowSettings.clicked.connect(self.showSettings)
@@ -161,14 +161,13 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # Step 5 Next
         self.guideStep5Next.clicked.connect(self.runGuideStep5Next)
 
-        # Step 6 Next
-        self.guideStep6Next.clicked.connect(self.runGuideStep6Next)
-
-        # Step 7 Show Report
+        # Step 6 Show Report
         self.guideShowReport.clicked.connect(self.showReport)
 
     def getProcessRadial(self):
-        processRadial = open(self.pluginPath + '/grass/radialsettings.txt', 'r').read()
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        processRadial = open(DATAPATH + '/config/radialsettings.txt', 'r').read()
         processRadial = processRadial.strip()
         if (processRadial == "0"):
             return False
@@ -176,7 +175,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             return True
 
     def getWeightLimit(self):
-        weightLimit = open(self.pluginPath + '/grass/weightlimit.txt', 'r').read()
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        weightLimit = open(DATAPATH + '/config/weightlimit.txt', 'r').read()
         weightLimit = weightLimit.strip()
         if weightLimit.isdigit():
             return int(weightLimit)
@@ -254,7 +255,16 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def copyTemplate(self, NEW_PROJECT_PATH, TEMPLATES_PATH, NAMESAFE):
         if not os.path.isdir(NEW_PROJECT_PATH):
             os.mkdir(NEW_PROJECT_PATH)
+
+            # sets the settings to zero, so no radial and no weight limit is used
             os.mkdir(NEW_PROJECT_PATH + "/config")
+            f = open(NEW_PROJECT_PATH + '/config/weightlimit.txt', 'w')
+            f.write("0")
+            f.close()
+            f = open(NEW_PROJECT_PATH + '/config/radialsettings.txt', 'w')
+            f.write("0")
+            f.close()
+
             copy(TEMPLATES_PATH + "/projekt/clean.qgs", NEW_PROJECT_PATH + "/" + NAMESAFE + ".qgs")
             os.mkdir(NEW_PROJECT_PATH + "/pracovni")
             for file in glob(TEMPLATES_PATH + '/projekt/pracovni/*'):
@@ -338,6 +348,19 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
         return None
 
+    def getSimpleProjectDataPath(self):
+        DATAPATH = ''
+        if os.path.isfile('C:/patracdata/cr/projekty/simple/simple.qgs'):
+            DATAPATH = 'C:/patracdata/cr/projekty/simple/'
+        if os.path.isfile('D:/patracdata/cr/projekty/simple/simple.qgs'):
+            DATAPATH = 'D:/patracdata/cr/projekty/simple/'
+        if os.path.isfile('E:/patracdata/cr/projekty/simple/simple.qgs'):
+            DATAPATH = 'E:/patracdata/cr/projekty/simple/'
+        if os.path.isfile('/data/patracdata/cr/projekty/simple/simple.qgs'):
+            DATAPATH = '/data/patracdata/cr/projekty/simple/'
+
+        return DATAPATH
+
     def checkRegion(self, region):
         if region is not None:
             region = region.lower()
@@ -346,8 +369,13 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                                     u"Extent mapy je mimo ČR. Nemám data nemohu pokračovat.")
             return None
 
-        prjfi = QFileInfo(QgsProject.instance().fileName())
-        DATAPATH = prjfi.absolutePath()
+        DATAPATH = self.getSimpleProjectDataPath()
+
+        if DATAPATH == '':
+            QMessageBox.information(None, "KRITICKÁ CHYBA:",
+                                    u"Nepodařilo se najít adresář s daty. Nemohu pokračovat.")
+            return None
+
         regionOut = None
         QgsMessageLog.logMessage(u"Region: " + region, "Patrac")
         if os.path.isfile(DATAPATH + '/../../../kraje/' + region + '/vektor/OSM/line_x/merged_polygons_groupped.shp'):
@@ -375,20 +403,34 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         name = self.msearch.text()
         self.createProject(name)
 
-    def runCreateProjectGuide(self):
-        name = self.guideMunicipalitySearch.text()
-        self.createProject(name)
+    def runCreateProjectGuide(self, index):
+        #name = self.guideMunicipalitySearch.text()
+        self.createProject(index)
 
-    def createProject(self, name):
-
+    def createProject(self, index):
         # Check if the project has okresy_pseudo.shp
-        if not self.checkLayer("okresy_pseudo.shp"):
+
+        QgsMessageLog.logMessage("CREATING PROJECT", "Patrac")
+        #project = QgsProject.instance()
+        #project.clear()
+        #QgsMapLayerRegistry.instance().mapLayers().clear()
+
+        #if not self.openProjectSimple():
+        #    return
+
+        # if not self.checkLayer("okresy_pseudo.shp"):
             #QMessageBox.information(None, "CHYBA:",
             #                        u"Projekt neobsahuje vrstvu okresy. Pokusím se otevřít výchozí projekt.")
-            self.openProjectSimple()
-            return
+            # QgsMessageLog.logMessage("checkLayer(okresy_pseudo.shp)", "Patrac")
+            # if not self.openProjectSimple():
+            #    return
 
-        region = self.getRegion()
+        # QgsMessageLog.logMessage("openProjectSimple OK", "Patrac")
+
+        name = self.municipalities_names[index]
+        region = self.municipalities_regions[index]
+
+        #region = self.getRegion()
         region = self.checkRegion(region)
 
         if region is None:
@@ -409,14 +451,18 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             name = name + "_" + strftime("%Y-%m-%d_%H-%M-%S", gmtime())
 
         NAMESAFE = self.getSafeDirectoryName(name)
-        XMIN = str(self.canvas.extent().xMinimum())
-        YMIN = str(self.canvas.extent().yMinimum())
-        XMAX = str(self.canvas.extent().xMaximum())
-        YMAX = str(self.canvas.extent().yMaximum())
+
+        items = self.municipalities_coords[index].split(";")
+        x = int(items[0])
+        y = int(items[1])
+        XMIN = str(x - 6000)
+        YMIN = str(y - 5000)
+        XMAX = str(x + 6000)
+        YMAX = str(y + 5000)
         QgsMessageLog.logMessage(u"g.region e=" + XMAX + " w=" + XMIN + " n=" + YMAX + " s=" + YMIN, "Patrac")
         QgsMessageLog.logMessage(u"Název: " + NAMESAFE, "Patrac")
-        prjfi = QFileInfo(QgsProject.instance().fileName())
-        DATAPATH = prjfi.absolutePath()
+
+        DATAPATH = self.getSimpleProjectDataPath()
 
         NEW_PROJECT_PATH = DATAPATH + "/../../../kraje/" + region + "/projekty/" + NAMESAFE
         TEMPLATES_PATH = DATAPATH + "/../../../kraje/templates"
@@ -441,11 +487,12 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
         # self.copyQGSTemplate(NEW_PROJECT_PATH, TEMPLATES_PATH, KRAJ_DATA_PATH)
         project = QgsProject.instance()
+        QgsMessageLog.logMessage(NEW_PROJECT_PATH + '/' + NAMESAFE + '.qgs', "Patrac")
         project.read(QFileInfo(NEW_PROJECT_PATH + '/' + NAMESAFE + '.qgs'))
         # self.do_msearch()
         self.zoomToExtent(XMIN, YMIN, XMAX, YMAX)
         self.addAllZPMRasters(KRAJ_DATA_PATH)
-        self.recalculateSectors()
+        self.recalculateSectors(True)
         self.createNewSearch(name, region)
         self.settingsdlg.updateSettings()
         self.setCursor(Qt.ArrowCursor)
@@ -493,15 +540,19 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def municipalitySearch(self, textBox):
         """Tries to find municipallity in list and zoom to coordinates of it."""
         # Check if the project has okresy_pseudo.shp
-        if not self.checkLayer("okresy_pseudo.shp"):
-            #QMessageBox.information(None, "CHYBA:",
-            #                        u"Projekt neobsahuje vrstvu okresy. Pokusím se otevřít výchozí projekt.")
-            result = self.openProjectSimple()
-            if not result:
-                QMessageBox.information(None, "KRITICKÁ CHYBA:",
-                                        u"Nepodařilo se otevřít projekt pro generování. Zkuste jej otevřít přes Projekt/Otevřít. "
-                                        u"Měl by se nacházet na disku C, D, E nebo F v adresáři patracdata.")
-                return
+
+        # project = QgsProject.instance()
+        # project.clear()
+        #
+        # if not self.checkLayer("okresy_pseudo.shp"):
+        #     #QMessageBox.information(None, "CHYBA:",
+        #     #                        u"Projekt neobsahuje vrstvu okresy. Pokusím se otevřít výchozí projekt.")
+        #     result = self.openProjectSimple()
+        #     if not result:
+        #         QMessageBox.information(None, "KRITICKÁ CHYBA:",
+        #                                 u"Nepodařilo se otevřít projekt pro generování. Zkuste jej otevřít přes Projekt/Otevřít. "
+        #                                 u"Měl by se nacházet na disku C, D, E nebo F v adresáři patracdata.")
+        #         return
 
         try:
             input_name = textBox.text()
@@ -521,11 +572,14 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             # if the municipality is not found
             if x == -1:
                 QMessageBox.information(self.iface.mainWindow(), u"Chybná obec", u"Obec nebyla nalezena")
+                return -1
             else:
                 # if the municipality has coords
-                self.zoomto(x, y)
+                #self.zoomto(x, y)
+                return i
         except (KeyError, IOError):
             QMessageBox.information(self.iface.mainWindow(), u"Chybná obec", u"Obec nebyla nalezena")
+            return i
         except IndexError:
             pass
 
@@ -533,12 +587,10 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.municipalitySearch(self.msearch)
 
     def runGuideMunicipalitySearch(self):
-        self.municipalitySearch(self.guideMunicipalitySearch)
-        self.tabGuideSteps.setCurrentIndex(1)
+        municipalityindex = self.municipalitySearch(self.guideMunicipalitySearch)
 
-    def runGuideStep2Next(self):
         # generate project
-        self.runCreateProjectGuide()
+        self.runCreateProjectGuide(municipalityindex)
 
         # set mista to editing mode
         self.currentTool = self.iface.mapCanvas().mapTool()
@@ -556,11 +608,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
             # set tool to add feature
             self.iface.actionAddFeature().trigger()
+        self.tabGuideSteps.setCurrentIndex(1)
 
-            # move to netx tab (tab 3)
-            self.tabGuideSteps.setCurrentIndex(2)
-
-    def runGuideStep3Next(self):
+    def runGuideStep2Next(self):
         # set tool to save edits
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
@@ -573,10 +623,10 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layer.commitChanges()
         self.iface.actionToggleEditing().trigger()
 
-        # move to next tab (tab 4)
-        self.tabGuideSteps.setCurrentIndex(3)
+        # move to next tab (tab 3)
+        self.tabGuideSteps.setCurrentIndex(2)
 
-    def runGuideStep4Next(self):
+    def runGuideStep3Next(self):
         # run area determination computation
         self.personType = self.guideComboPerson.currentIndex() + 1
         self.getArea()
@@ -584,19 +634,19 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # set spin to 70%
         self.__updateSliderEnd(70)
 
-        # move to next tab (tab 5)
-        self.tabGuideSteps.setCurrentIndex(4)
+        # move to next tab (tab 4)
+        self.tabGuideSteps.setCurrentIndex(3)
 
-    def runGuideStep5Next(self):
+    def runGuideStep4Next(self):
         # set percent of visibility
         self.spinStart.setValue(0)
         self.spinEnd.setValue(self.guideSpinEnd.value())
         self.updatePatrac()
 
-        # move to next tab (tab 6)
-        self.tabGuideSteps.setCurrentIndex(5)
+        # move to next tab (tab 5)
+        self.tabGuideSteps.setCurrentIndex(4)
 
-    def runGuideStep6Next(self):
+    def runGuideStep5Next(self):
         # saves information about available resources
         self.saveUnitsInformation()
 
@@ -606,8 +656,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # run sectors selection and exports
         self.reportExportSectors(False, True)
 
-        # move to next tab (tab 7)
-        self.tabGuideSteps.setCurrentIndex(6)
+        # move to next tab (tab 6)
+        self.tabGuideSteps.setCurrentIndex(5)
 
     def showReport(self):
         self.setCursor(Qt.WaitCursor)
@@ -711,13 +761,15 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # sets arrays of municipalities names and coords
         self.municipalities_names = []
         self.municipalities_coords = []
+        self.municipalities_regions = []
         # reads list of municipalities from CSV
-        with open(self.pluginPath + "/ui/obce_okr_utf8_20180131.csv", "rb") as fileInput:
+        with open(self.pluginPath + "/ui/obce_okr_kr_utf8_20180131.csv", "rb") as fileInput:
             for row in csv.reader(fileInput, delimiter=';'):
                 unicode_row = [x.decode('utf8') for x in row]
                 # sets the name (and province in brackets for iunique identification)
                 self.municipalities_names.append(unicode_row[3] + " (" + unicode_row[5] + ")")
                 self.municipalities_coords.append(unicode_row[0] + ";" + unicode_row[1])
+                self.municipalities_regions.append(unicode_row[6])
         # Sets list of names to model for autocompleter
         model.setStringList(self.municipalities_names)
 
@@ -1093,10 +1145,13 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layer.commitChanges()
         layer.triggerRepaint()
         self.setCursor(Qt.ArrowCursor)
-        self.recalculateSectors()
+        self.recalculateSectors(False)
         return
 
-    def recalculateSectors(self):
+    def recalculateSectorsExpert(self):
+        self.recalculateSectors(False)
+
+    def recalculateSectors(self, setLabels):
         """Recalculate areas of sectors and identifiers"""
 
         # Check if the project has sektory_group_selected.shp
@@ -1113,6 +1168,12 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             if lyr.source() == DATAPATH + "/pracovni/sektory_group_selected.shp":
                 layer = lyr
                 break
+
+        if layer == None:
+            QMessageBox.information(None, "CHYBA:",
+                                    u"Projekt nemá načtenu vrstvu sektorů. Nemohu pokračovat.")
+            return
+
         provider = layer.dataProvider()
         features = provider.getFeatures()
         sectorid = 0
@@ -1120,12 +1181,24 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         for feature in features:
             sectorid = sectorid + 1
             # Label is set to A and sequential number
-            feature['label'] = 'A' + str(sectorid)
+            # Labels must be stable for whole search area, so only at the beginning are sectors labeled
+            if setLabels:
+                feature['label'] = 'A' + str(sectorid)
             # Area in hectares
             feature['area_ha'] = round(feature.geometry().area() / 10000)
             layer.updateFeature(feature)
         layer.commitChanges()
         layer.triggerRepaint()
+
+        QgsMessageLog.logMessage("Spoustim python " + self.pluginPath + "/grass/store_sectors.py", "Patrac")
+        self.setCursor(Qt.WaitCursor)
+        if sys.platform.startswith('win'):
+            p = subprocess.Popen((self.pluginPath + "/grass/run_store_sectors.bat", DATAPATH, self.pluginPath))
+            p.wait()
+        else:
+            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_store_sectors.sh", DATAPATH, self.pluginPath))
+            p.wait()
+
         self.setCursor(Qt.ArrowCursor)
         return sectorid
 
@@ -1147,7 +1220,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                                     u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
             return
 
-        sectorid = self.recalculateSectors()
+        sectorid = self.recalculateSectors(False)
         self.setCursor(Qt.WaitCursor)
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
@@ -1218,7 +1291,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                                     u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
             return
 
-        sectorid = self.recalculateSectors()
+        sectorid = self.recalculateSectors(False)
         self.setCursor(Qt.WaitCursor)
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
@@ -1490,6 +1563,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def checkLayer(self, name):
         layerExists = False
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            QgsMessageLog.logMessage("Check layer: " + name + ": " + lyr.source(), "Patrac")
             if name in lyr.source():
                 layerExists = True
                 break

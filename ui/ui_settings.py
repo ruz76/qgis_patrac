@@ -450,15 +450,18 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         if self.comboBoxDistance.currentIndex() == 3:
             shutil.copy (self.pluginPath + "/grass/distancesUser.txt", self.pluginPath + "/grass/distances.txt")
 
-        f = open(self.pluginPath + '/grass/searchid.txt', 'w')
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+
+        f = open(DATAPATH + '/config/searchid.txt', 'w')
         f.write(self.lineEditSearchID.text())
         f.close()
 
-        f = open(self.pluginPath + '/grass/weightlimit.txt', 'w')
+        f = open(DATAPATH + '/config/weightlimit.txt', 'w')
         f.write(self.lineEditWeightLimit.text())
         f.close()
 
-        f = open(self.pluginPath + '/grass/radialsettings.txt', 'w')
+        f = open(DATAPATH + '/config/radialsettings.txt', 'w')
         if self.checkBoxRadial.isChecked():
             f.write("1")
         else:
