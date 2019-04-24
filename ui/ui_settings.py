@@ -100,6 +100,11 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.pushButtonGetSystemUsersShedule.clicked.connect(self.refreshSystemUsersSetSheduler)
         self.periodic_scheduler = None
 
+        # fill filtering combos
+        self.fillCmbArea()
+        self.fillCmbTime()
+        self.fillCmbStatus()
+
     def refreshSystemUsersSetSheduler(self):
         QMessageBox.information(None, "NOT IMPLEMENTED", u"Tato funkce není zatím implementována")
         #if self.periodic_scheduler is None:
@@ -346,6 +351,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         tableWidget.setColumnWidth(1, 300);
         #Reads list and populate the table
         lines = list.split("\n")
+        lines = self.filterSystemUsers(lines)
         tableWidget.setRowCount(len(lines))
         #tableWidget.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
         # Loops via users
@@ -359,6 +365,60 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                     j = j + 1
                 #tableWidget.selectRow(i)
                 i = i + 1
+
+    def filterSystemUsers(self, lines):
+        linesFiltered = []
+        for line in lines:
+            if line != "":
+                cols = line.split(";")
+                if self.filterSystemUsersByStatus(cols[2]):
+                    if self.filterSystemUserByTime(cols[5]):
+                        if self.filterSystemUsersByArea(cols[4]):
+                            linesFiltered.append(line)
+                        else:
+                            print("Filtered out: " + line)
+                    else:
+                        print("Filtered out: " + line)
+                else:
+                    print("Filtered out: " + line)
+        return linesFiltered
+
+    def filterSystemUsersByStatus(self, value):
+        if self.comboBoxStatus.currentIndex() == 0:
+            return True
+        else:
+            return self.comboBoxStatus.currentText() == value
+
+    def filterSystemUserByTime(self, value):
+        if self.comboBoxTime.currentIndex() == 0:
+            return True
+        if self.comboBoxTime.currentIndex() == 1:
+            allowedValues = ["60m"]
+            return value in allowedValues
+        if self.comboBoxTime.currentIndex() == 2:
+            allowedValues = ["60m", "2h"]
+            return value in allowedValues
+        if self.comboBoxTime.currentIndex() == 3:
+            allowedValues = ["60m", "2h", "3h"]
+            return value in allowedValues
+        if self.comboBoxTime.currentIndex() == 4:
+            allowedValues = ["60m", "2h", "3h", "4h"]
+            return value in allowedValues
+        if self.comboBoxTime.currentIndex() == 5:
+            allowedValues = ["60m", "2h", "3h", "4h", "5h"]
+            return value in allowedValues
+        if self.comboBoxTime.currentIndex() == 6:
+            allowedValues = [">5h"]
+            return value in allowedValues
+
+    def filterSystemUsersByArea(self, value):
+        if self.comboBoxArea.currentIndex() == 0:
+            return True
+        if self.comboBoxArea.currentIndex() == 1:
+            return value == self.getRegion()
+        if self.comboBoxArea.currentIndex() == 2:
+            return value in self.getRegionAndSurrounding()
+
 
     def fillTableWidgetFriction(self, fileName, tableWidget):
         """Fills table with units"""
@@ -407,6 +467,28 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                     tableWidget.setItem(i, j, QtGui.QTableWidgetItem(field))
                     j=j+1
                 i=i+1
+
+    def fillCmbArea(self):
+        self.comboBoxArea.addItem(u"Všichni")
+        self.comboBoxArea.addItem(u"Kraj")
+        self.comboBoxArea.addItem(u"Kraj a okolí")
+
+    def fillCmbTime(self):
+        self.comboBoxTime.addItem(u"Všichni")
+        self.comboBoxTime.addItem("< 1h")
+        self.comboBoxTime.addItem("< 2h")
+        self.comboBoxTime.addItem("< 3h")
+        self.comboBoxTime.addItem("< 4h")
+        self.comboBoxTime.addItem("< 5h")
+        self.comboBoxTime.addItem("> 5h")
+
+    def fillCmbStatus(self):
+        self.comboBoxStatus.addItem(u"Všichni")
+        self.comboBoxStatus.addItem("sleeping")
+        self.comboBoxStatus.addItem("waiting")
+        self.comboBoxStatus.addItem("callonduty")
+        self.comboBoxStatus.addItem("calltojoin")
+        self.comboBoxStatus.addItem("onduty")
 
     def accept(self):
         """Writes settings to the appropriate files"""

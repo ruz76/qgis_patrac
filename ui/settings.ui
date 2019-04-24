@@ -39,7 +39,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>4</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -624,46 +624,24 @@
      <property name="title">
       <string/>
      </property>
-     <widget class="QRadioButton" name="radioButtonRegion">
+     <widget class="QComboBox" name="comboBoxStatus">
       <property name="geometry">
        <rect>
-        <x>20</x>
+        <x>10</x>
         <y>0</y>
-        <width>61</width>
-        <height>26</height>
+        <width>141</width>
+        <height>27</height>
        </rect>
-      </property>
-      <property name="text">
-       <string>Kraj</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
       </property>
      </widget>
-     <widget class="QRadioButton" name="radioButtonRegionPlus">
+     <widget class="QComboBox" name="comboBoxTime">
       <property name="geometry">
        <rect>
-        <x>90</x>
+        <x>160</x>
         <y>0</y>
-        <width>151</width>
-        <height>26</height>
+        <width>141</width>
+        <height>27</height>
        </rect>
-      </property>
-      <property name="text">
-       <string>Kraj a sousední</string>
-      </property>
-     </widget>
-     <widget class="QRadioButton" name="radioButtonCountry">
-      <property name="geometry">
-       <rect>
-        <x>250</x>
-        <y>0</y>
-        <width>111</width>
-        <height>26</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Všichni</string>
       </property>
      </widget>
     </widget>
@@ -717,6 +695,16 @@
      </property>
      <property name="text">
       <string>Obnovovat automaticky</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBoxArea">
+     <property name="geometry">
+      <rect>
+       <x>310</x>
+       <y>370</y>
+       <width>141</width>
+       <height>27</height>
+      </rect>
      </property>
     </widget>
    </widget>

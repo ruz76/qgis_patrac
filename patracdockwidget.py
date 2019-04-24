@@ -62,6 +62,9 @@ import uuid
 
 from PyQt4.QtCore import QSettings
 
+#from PyQt4.QtCore import QCoreApplication
+#QCoreApplication.processEvents()
+
 class ZPM_Raster():
     def __init__(self, name, distance, xmin, ymin, xmax, ymax):
         self.name = name
@@ -500,7 +503,29 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.recalculateSectors(True)
         self.createNewSearch(name, region)
         self.settingsdlg.updateSettings()
+        self.saveRegion(region, NEW_PROJECT_PATH)
+        self.saveExtent(XMIN, YMIN, XMAX, YMAX, NEW_PROJECT_PATH)
         self.setCursor(Qt.ArrowCursor)
+
+    def getDataPath(self):
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        return prjfi.absolutePath()
+
+    def saveRegion(self, region, DATAPATH):
+        QgsMessageLog.logMessage(u"Saving region: " + region + u" to " + DATAPATH + '/config/region.txt', "Patrac")
+        f = open(DATAPATH + '/config/region.txt', 'w')
+        f.write(region)
+        f.close()
+
+    def saveExtent(self, XMIN, YMIN, XMAX, YMAX, DATAPATH):
+        QgsMessageLog.logMessage(u"Saving extent to " + DATAPATH + '/config/extent.txt', "Patrac")
+        f = open(DATAPATH + '/config/extent.txt', 'w')
+        f.write(XMIN + " " + YMIN + " " + XMAX + " " + YMAX)
+        f.close()
+
+    def getRegionDataPath(self):
+        region = open(self.getDataPath() + '/config/region.txt', 'r').read()
+        return self.getDataPath() + "/../../../" + region
 
     def zoomToExtent(self, XMIN, YMIN, XMAX, YMAX):
         rect = QgsRectangle(float(XMIN), float(YMIN), float(XMAX), float(YMAX))
@@ -1154,7 +1179,131 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         return
 
     def recalculateSectorsExpert(self):
-        self.recalculateSectors(False)
+        # self.recalculateSectors(False)
+        # TODO change icon and name of the function
+        self.extendRegion()
+
+    def extendRegion(self):
+        QgsMessageLog.logMessage("Spoustim python " + self.pluginPath + "/grass/export.py", "Patrac")
+        self.setCursor(Qt.WaitCursor)
+
+        initialExtent = open(self.getDataPath() + '/config/extent.txt', 'r').read()
+        initialExtentItems = initialExtent.split(" ")
+
+        XMIN = str(self.canvas.extent().xMinimum()) \
+            if self.canvas.extent().xMinimum() < float(initialExtentItems[0]) else initialExtentItems[0]
+        YMIN = str(self.canvas.extent().yMinimum()) \
+            if self.canvas.extent().yMinimum() < float(initialExtentItems[1]) else initialExtentItems[1]
+        XMAX = str(self.canvas.extent().xMaximum()) \
+            if self.canvas.extent().xMaximum() > float(initialExtentItems[2]) else initialExtentItems[2]
+        YMAX = str(self.canvas.extent().yMaximum()) \
+            if self.canvas.extent().yMaximum() > float(initialExtentItems[3]) else initialExtentItems[3]
+
+        # XMIN = str(self.canvas.extent().xMinimum())
+        # YMIN = str(self.canvas.extent().yMinimum())
+        # XMAX = str(self.canvas.extent().xMaximum())
+        # YMAX = str(self.canvas.extent().yMaximum())
+
+        if sys.platform.startswith('win'):
+            p = subprocess.Popen((
+                self.pluginPath + "/grass/run_export.bat", self.getRegionDataPath(), self.pluginPath, XMIN, YMIN,
+                XMAX, YMAX, self.getDataPath()))
+            p.wait()
+            p = subprocess.Popen((self.pluginPath + "/grass/run_import_for_extend.bat", self.getDataPath(), self.pluginPath, XMIN,
+                                  YMIN, XMAX, YMAX, self.getRegionDataPath()))
+            p.wait()
+        else:
+            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_export.sh", self.getRegionDataPath(), self.pluginPath,
+                                  XMIN, YMIN, XMAX, YMAX, self.getDataPath()))
+            p.wait()
+            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_import_for_extend.sh", self.getDataPath(), self.pluginPath,
+                                  XMIN, YMIN, XMAX, YMAX, self.getRegionDataPath()))
+            p.wait()
+
+        self.appendSectors()
+        self.setCursor(Qt.ArrowCursor)
+
+    def getSectorsIds(self):
+        with open(self.getDataPath() + '/pracovni/listOfIds.txt') as f:
+            return f.read().splitlines()
+
+    def appendSectors(self):
+        self.addVectorLayer(self.getDataPath() + "/pracovni/sektory_group_to_append.shp", u"Sektory k přidání")
+
+        layer = None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if lyr.source() == self.getDataPath() + "/pracovni/sektory_group_selected.shp":
+                layer = lyr
+                break
+
+        if layer == None:
+            QMessageBox.information(None, "CHYBA:",
+                                    u"Projekt nemá načtenu vrstvu sektorů. Nemohu pokračovat.")
+            return
+
+        layerToAdd = None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if lyr.source() == self.getDataPath() + "/pracovni/sektory_group_to_append.shp":
+                layerToAdd = lyr
+                break
+
+        if layerToAdd == None:
+            QMessageBox.information(None, "CHYBA:",
+                                    u"Projekt nemá načtenu vrstvu k přidání sektorů. Nemohu pokračovat.")
+            return
+
+        # we save the edits before the process (if there are any)
+        layer.commitChanges()
+
+        # we create list of ids of existing layer
+        startingLetter = 'B'
+        featureIds = self.getSectorsIds()
+        print(featureIds)
+        #geometries = []
+        provider = layer.dataProvider()
+        features = provider.getFeatures()
+        for feature in features:
+            #featureIds.append(feature['id'])
+            #geometries.append(feature.geometry())
+            if ord(feature['label'][0:1]) >= ord(startingLetter):
+                startingLetter = chr(ord(feature['label'][0:1]) + 1)
+
+        # we open layer again to add new sectors
+        layer.startEditing()
+
+        f = open(self.getDataPath() + '/pracovni/listOfIds.txt', 'a')
+        providerToAdd = layerToAdd.dataProvider()
+        featuresToAdd = providerToAdd.getFeatures()
+        sectorid = 0
+        for feature in featuresToAdd:
+            if str(feature['id']) not in featureIds:
+                print("ADD " + str(feature['id']))
+                f.write(str(feature['id']) + u"\n")
+                sectorid = sectorid + 1
+                feature['label'] = str(startingLetter) + str(sectorid)
+                feature['area_ha'] = round(feature.geometry().area() / 10000)
+                layer.addFeature(feature)
+
+        f.close()
+        layer.commitChanges()
+        layer.triggerRepaint()
+
+        self.removeLayer(self.getDataPath() + "/pracovni/sektory_group_to_append.shp")
+
+    def dump(self, obj):
+        for attr in dir(obj):
+            if hasattr(obj, attr):
+                print("obj.%s = %s" % (attr, getattr(obj, attr)))
+
+    def featureIntersects(self, featureToCheck, geometries):
+        # does not work, and it works it will be slow
+        print("START INTERSECT")
+        for geometry in geometries:
+            print("FEATURE:" + geometry.exportToWkt())
+            print("featureToCheck:" + featureToCheck.geometry().exportToWkt())
+            if geometry.intersects(featureToCheck.geometry()):
+                return True
+        return False
 
     def recalculateSectors(self, setLabels):
         """Recalculate areas of sectors and identifiers"""
@@ -1182,6 +1331,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         provider = layer.dataProvider()
         features = provider.getFeatures()
         sectorid = 0
+        f = open(DATAPATH + '/pracovni/listOfIds.txt', 'w')
         layer.startEditing()
         for feature in features:
             sectorid = sectorid + 1
@@ -1191,9 +1341,12 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 feature['label'] = 'A' + str(sectorid)
             # Area in hectares
             feature['area_ha'] = round(feature.geometry().area() / 10000)
+            #print(str(feature['id']))
+            f.write(str(feature['id']) + u"\n")
             layer.updateFeature(feature)
         layer.commitChanges()
         layer.triggerRepaint()
+        f.close()
 
         QgsMessageLog.logMessage("Spoustim python " + self.pluginPath + "/grass/store_sectors.py", "Patrac")
         self.setCursor(Qt.WaitCursor)
@@ -1272,8 +1425,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 crs = QgsCoordinateReferenceSystem("EPSG:4326")
                 QgsVectorFileWriter.writeAsVectorFormat(sector, DATAPATH + "/sektory/gpx/" + feature['label'] + ".gpx",
                                                         "utf-8", crs, "GPX",
-                                                        datasourceOptions=['GPX_USE_EXTENSIONS=YES',
-                                                                           'FORCE_GPX_TRACK=YES'])
+                                                        datasourceOptions=['GPX_USE_EXTENSIONS=YES'],
+                                                        layerOptions=['FORCE_GPX_TRACK=YES'])
                 QgsMapLayerRegistry.instance().addMapLayer(sector, False)
                 root = QgsProject.instance().layerTreeRoot()
                 sektorygroup = root.findGroup("sektory")
@@ -1414,8 +1567,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 # Export do GPX
                 QgsVectorFileWriter.writeAsVectorFormat(sector, DATAPATH + "/sektory/gpx/" + feature['label'] + ".gpx",
                                                         "utf-8", crs, "GPX",
-                                                        datasourceOptions=['GPX_USE_EXTENSIONS=YES',
-                                                                           'FORCE_GPX_TRACK=YES'])
+                                                        datasourceOptions=['GPX_USE_EXTENSIONS=YES'],
+                                                        layerOptions=['FORCE_GPX_TRACK=YES'])
                 QgsMapLayerRegistry.instance().addMapLayer(sector, False)
                 root = QgsProject.instance().layerTreeRoot()
                 sektorygroup = root.findGroup("sektory")
@@ -1436,8 +1589,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layerLines.commitChanges()
         QgsVectorFileWriter.writeAsVectorFormat(layerLines, DATAPATH + "/sektory/gpx/all.gpx",
                                                 "utf-8", crs, "GPX",
-                                                datasourceOptions=['GPX_USE_EXTENSIONS=YES',
-                                                                   'FORCE_GPX_TRACK=YES'])
+                                                datasourceOptions=['GPX_USE_EXTENSIONS=YES'],
+                                                layerOptions=['FORCE_GPX_TRACK=YES'])
 
         #Writes styles
         f.write(u"<style>")
