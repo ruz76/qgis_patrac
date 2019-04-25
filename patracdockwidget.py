@@ -119,6 +119,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.tbtnReportExportSectors.clicked.connect(self.runExpertReportExportSectors)
         self.tbtnShowSettings.clicked.connect(self.showSettings)
         self.guideShowSettings.clicked.connect(self.showSettings)
+        self.tbtnExtendRegion.clicked.connect(self.extendRegion)
         self.tbtnImportPaths.clicked.connect(self.showImportGpx)
         self.tbtnShowSearchers.clicked.connect(self.showPeople)
         self.tbtnShowSearchersTracks.clicked.connect(self.showPeopleTracks)
@@ -443,10 +444,10 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                                     u"Pro daný kraj nemám k dispozici data. Nemám data nemohu pokračovat.")
             return
 
-        if not self.checkRegionExtent():
-            QMessageBox.information(None, "INFO:",
-                                    u"Ukončuji generování.")
-            return
+        # if not self.checkRegionExtent():
+        #     QMessageBox.information(None, "INFO:",
+        #                             u"Ukončuji generování.")
+        #     return
 
         self.setCursor(Qt.WaitCursor)
         if name == '':
@@ -709,7 +710,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/sektory_group_selected.shp":
+            if DATAPATH + "/pracovni/sektory_group.shp" in lyr.source():
                 layer = lyr
                 break
 
@@ -1131,8 +1132,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def getSectors(self, min, max):
         """Selects sectors from grass database based on filtered raster"""
 
-        # Check if the project has sektory_group_selected.shp
-        if not self.checkLayer("/pracovni/sektory_group_selected.shp"):
+        # Check if the project has sektory_group.shp
+        if not self.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
                                     u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
             return
@@ -1140,7 +1141,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
         # Removes layer
-        self.removeLayer(DATAPATH + '/pracovni/sektory_group_selected.shp')
+        # self.removeLayer(DATAPATH + '/pracovni/sektory_group.shp')
 
         QgsMessageLog.logMessage("Spoustim python " + self.pluginPath + "/grass/sectors.py", "Patrac")
         self.setCursor(Qt.WaitCursor)
@@ -1156,14 +1157,34 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             # os.system("bash " + self.pluginPath + "/grass/run_sectors.sh " + DATAPATH + " " + self.pluginPath + " " + str(self.sliderStart.value()) + " " + str(self.sliderEnd.value()))
 
         # Adds newly created layer with sectors to map
-        self.addVectorLayer(DATAPATH + '/pracovni/sektory_group_selected.shp', 'sektory')
+        self.addVectorLayer(DATAPATH + '/pracovni/sektory_group_selected.shp', 'sektory vybrané')
+
+        #layer.dataProvider().forceReload()
+        # layer.triggerRepaint()
+        self.filterSectors()
+        self.setCursor(Qt.ArrowCursor)
+        # self.recalculateSectors(False)
+        return
+
+    def filterSectors(self):
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/sektory_group_selected.shp":
+            if self.getDataPath() + "/pracovni/sektory_group_selected.shp" in lyr.source():
                 layer = lyr
                 break
-        layer.dataProvider().forceReload()
 
+        provider = layer.dataProvider()
+        features = provider.getFeatures()
+        # save ids of selected sectors into file for future usage
+        f = open(self.getDataPath() + '/pracovni/selectedSectors.txt', 'a')
+        filter = "id IN ("
+        for feature in features:
+            f.write(str(feature['id']) + "\n")
+            filter += str(feature['id']) + ", "
+        filter = filter[:-2] + ")"
+        f.close()
+
+        # remove layer we do not need it
         # Removes first two attrbutes from added layer
         # Attributes are something like cat_
         # Attributes cat and cat_ are identical
@@ -1173,15 +1194,23 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         layer.startEditing()
         layer.dataProvider().deleteAttributes(fList)
         layer.commitChanges()
-        layer.triggerRepaint()
-        self.setCursor(Qt.ArrowCursor)
-        self.recalculateSectors(False)
-        return
+
+        self.removeLayer(self.getDataPath() + "/pracovni/sektory_group_selected.shp")
+
+        layer = None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if self.getDataPath() + "/pracovni/sektory_group.shp" in lyr.source():
+                layer = lyr
+                break
+
+        # Filter the layer
+        QgsMessageLog.logMessage("Filtruji " + filter, "Patrac")
+        layer.setSubsetString(filter)
 
     def recalculateSectorsExpert(self):
-        # self.recalculateSectors(False)
+        self.recalculateSectors(False)
         # TODO change icon and name of the function
-        self.extendRegion()
+        #self.extendRegion()
 
     def extendRegion(self):
         QgsMessageLog.logMessage("Spoustim python " + self.pluginPath + "/grass/export.py", "Patrac")
@@ -1232,7 +1261,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == self.getDataPath() + "/pracovni/sektory_group_selected.shp":
+            if self.getDataPath() + "/pracovni/sektory_group.shp" in lyr.source():
                 layer = lyr
                 break
 
@@ -1243,7 +1272,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
         layerToAdd = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == self.getDataPath() + "/pracovni/sektory_group_to_append.shp":
+            if self.getDataPath() + "/pracovni/sektory_group_to_append.shp" in lyr.source():
                 layerToAdd = lyr
                 break
 
@@ -1251,6 +1280,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             QMessageBox.information(None, "CHYBA:",
                                     u"Projekt nemá načtenu vrstvu k přidání sektorů. Nemohu pokračovat.")
             return
+
+        # we remove the subset if it is set
+        layer.setSubsetString("")
 
         # we save the edits before the process (if there are any)
         layer.commitChanges()
@@ -1309,7 +1341,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         """Recalculate areas of sectors and identifiers"""
 
         # Check if the project has sektory_group_selected.shp
-        if not self.checkLayer("/pracovni/sektory_group_selected.shp"):
+        if not self.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
                                     u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
             return
@@ -1319,7 +1351,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         DATAPATH = prjfi.absolutePath()
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/sektory_group_selected.shp":
+            if DATAPATH + "/pracovni/sektory_group.shp" in lyr.source():
                 layer = lyr
                 break
 
@@ -1373,7 +1405,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         """Exports sectors to SHP and GPX without creating report. It is much faster and allows to use only selected sectors."""
 
         # Check if the project has sektory_group_selected.shp
-        if not self.checkLayer("/pracovni/sektory_group_selected.shp"):
+        if not self.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
                                     u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
             return
@@ -1385,7 +1417,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/sektory_group_selected.shp":
+            if DATAPATH + "/pracovni/sektory_group.shp" in lyr.source():
                 layer = lyr
                 break
         provider = layer.dataProvider()
@@ -1440,23 +1472,37 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.setCursor(Qt.ArrowCursor)
         return
 
+    def rewriteSelectedSectors(self):
+        layer = None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if self.getDataPath() + "/pracovni/sektory_group.shp" in lyr.source():
+                layer = lyr
+                break
+        crs = QgsCoordinateReferenceSystem("EPSG:5514")
+        QgsVectorFileWriter.writeAsVectorFormat(layer, self.getDataPath() + "/pracovni/sektory_group_selected.shp",
+                                                "utf-8", crs, "ESRI Shapefile")
+
     def reportExportSectors(self, openReport, exportPDF):
         """Creates report and exports sectors to SHP and GPX"""
 
         # Check if the project has sektory_group_selected.shp
-        if not self.checkLayer("/pracovni/sektory_group_selected.shp"):
+        if not self.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
                                     u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
             return
 
         sectorid = self.recalculateSectors(False)
+
         self.setCursor(Qt.WaitCursor)
+        # exports curent layer to selected layer for GRASS GIS import
+        self.rewriteSelectedSectors()
+
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
 
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/sektory_group_selected.shp":
+            if DATAPATH + "/pracovni/sektory_group.shp" in lyr.source():
                 layer = lyr
                 break
 
@@ -1645,7 +1691,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def showMessage(self):
         """Show the dialog for sending messages"""
         # Check if the project has sektory_group_selected.shp
-        if not self.checkLayer("/pracovni/sektory_group_selected.shp"):
+        if not self.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
                                     u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
             return
@@ -1673,7 +1719,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             It is used at the time when the search is finished.
         """
         # Check if the project has sektory_group_selected.shp
-        if not self.checkLayer("/pracovni/sektory_group_selected.shp"):
+        if not self.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
                                     u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
             return

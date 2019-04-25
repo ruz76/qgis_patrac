@@ -101,4 +101,4 @@ gsetup.init(gisbase,
 PLUGIN_PATH=str(sys.argv[2])
 
 #Imports current sectors to have labels available
-print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAPATH+'/pracovni', layer='sektory_group_selected', overwrite=True, flags="o")
+print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAPATH+'/pracovni', layer='sektory_group', overwrite=True, flags="o")

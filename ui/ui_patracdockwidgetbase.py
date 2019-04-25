@@ -174,6 +174,15 @@ class Ui_PatracDockWidget(object):
         self.horizontalLayoutToolbar_5 = QtGui.QHBoxLayout()
         self.horizontalLayoutToolbar_5.setObjectName(_fromUtf8("horizontalLayoutToolbar_5"))
 
+        self.tbtnExtendRegion = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnExtendRegion.setObjectName(_fromUtf8("tbtnImportPaths"))
+        self.tbtnExtendRegion.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "extend_region.png")));
+        self.tbtnExtendRegion.setIconSize(QSize(32, 32));
+        self.tbtnExtendRegion.setFixedSize(QSize(42, 42));
+        self.horizontalLayoutToolbar_5.addWidget(self.tbtnExtendRegion)
+        self.tbtnExtendRegion.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Roszšířit oblast", None,
+                                                                     QtGui.QApplication.UnicodeUTF8))
+
         self.tbtnImportPaths = QtGui.QPushButton(self.dockWidgetContents)
         self.tbtnImportPaths.setObjectName(_fromUtf8("tbtnImportPaths"))
         self.tbtnImportPaths.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "import_paths.png")));
