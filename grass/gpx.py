@@ -2,12 +2,17 @@
 #!/usr/bin/env python
 
 import glob, os
-import sys
+import sys, os.path
 import subprocess
 import csv
 import io
 from shutil import copyfile
 import fnmatch
+
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+#from xslt.transform import Transform
+
+#transformInstance = Transform()
 
 #Jen test zda to bezi
 #f = open('/tmp/test.txt', 'w')
@@ -38,7 +43,7 @@ sys.path.append("/usr/local/games")
 # uncomment when using standalone WinGRASS installer
 grass7bin_win = r'C:\OSGeo4W64\bin\grass72.bat'
 # Linux
-grass7bin_lin = 'grass72'
+grass7bin_lin = 'grass74'
 # Mac OS X
 # this is TODO
 grass7bin_mac = '/Applications/GRASS/GRASS-7.0.app/'
@@ -129,6 +134,7 @@ for root, dirnames, filenames in os.walk(DATAPATH + '/search/temp'):
             #Copy original files
             copyfile(os.path.join(root, f.decode('utf8')), DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
             #Extracts from file records in time extent
+            #transformInstance.transform_xslt_time(PLUGINPATH, os.path.join(root, f.decode('utf8')), DATAPATH + '/search/temp/out.csv', DATEFROM, DATETO)
             if sys.platform.startswith('win'):
                 p = subprocess.Popen((PLUGINPATH + '/xslt/run_xslt.bat', PLUGINPATH, os.path.join(root, f.decode('utf8')), DATAPATH + '/search/temp/out.csv', DATEFROM, DATETO))
                 p.wait()
@@ -180,4 +186,4 @@ f.close()
 #Imports GML to GRASS
 print gscript.read_command('v.in.ogr', input=DATAPATH + '/search/temp/out_polyline.gml', output='out_polyline', flags='o', overwrite=True)
 #Exports SHP from imported GML
-print gscript.read_command('v.out.ogr', input='out_polyline', output=DATAPATH + '/search/shp/' + SECTOR + '.shp', overwrite=True)
+print gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='out_polyline', output=DATAPATH + '/search/shp/' + SECTOR + '.shp', overwrite=True)

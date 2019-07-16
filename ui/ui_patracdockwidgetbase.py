@@ -380,9 +380,14 @@ class Ui_PatracDockWidget(object):
         #self.chkGeneratePDF.setText(u"Vygenerovat PDF pro tisk")
         #self.verticalGuideLayoutStep6.addWidget(self.chkGeneratePDF)
         self.guideShowReport = QtGui.QPushButton(self.dockWidgetContents)
-        self.guideShowReport.setObjectName(_fromUtf8("guideInsertFinal"))
+        self.guideShowReport.setObjectName(_fromUtf8("guideShowReport"))
         self.guideShowReport.setText(u"Zobrazit report")
         self.verticalGuideLayoutStep6.addWidget(self.guideShowReport)
+
+        self.guideCopyGpx = QtGui.QPushButton(self.dockWidgetContents)
+        self.guideCopyGpx.setObjectName(_fromUtf8("guideCopyGpx"))
+        self.guideCopyGpx.setText(u"Uložit sektory na GPS")
+        self.verticalGuideLayoutStep6.addWidget(self.guideCopyGpx)
 
         self.horizontalLayoutToolbarGuide6 = QtGui.QHBoxLayout()
         self.horizontalLayoutToolbarGuide6.setObjectName(_fromUtf8("horizontalLayoutToolbarGuide6"))

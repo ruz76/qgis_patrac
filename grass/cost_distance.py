@@ -110,14 +110,14 @@ print gscript.read_command('v.in.ascii', input=PLUGIN_PATH + '/grass/coords.txt'
 print gscript.read_command('v.to.rast', input='coords', output='coords', use='cat' , overwrite=True)
 
 #Tests if the coord is not in null area
-print gscript.read_command('r.mapcalc', expression='coords_friction_slope=friction_slope * coords', overwrite=True)
-stats = gscript.parse_command('r.univar', map='coords_friction_slope', flags='g')
+print gscript.read_command('r.mapcalc', expression='coords_friction=friction * coords', overwrite=True)
+stats = gscript.parse_command('r.univar', map='coords_friction', flags='g')
 try:
     # Reads min value
     MIN = float(stats['min'])
 except:
     #if the min value is null
-    print gscript.read_command('r.mapcalc', expression='friction_null_rec=if(isnull(friction_slope), 1, null())',
+    print gscript.read_command('r.mapcalc', expression='friction_null_rec=if(isnull(friction), 1, null())',
                                overwrite=True)
     print gscript.read_command('r.buffer', input='friction_null_rec', output='friction_null_rec_buf_10', distances='10',
                                overwrite=True)
@@ -148,7 +148,7 @@ print gscript.read_command('v.to.rast', input='radial', output='radial', use='ca
 #Reclass triangles according to rules created by patracdockwidget.writeAzimuthReclass
 print gscript.read_command('r.reclass', input='radial', output='radial' + PLACE_ID, rules=PLUGIN_PATH + '/grass/azimuth_reclass.rules', overwrite=True)
 #Combines friction_slope with radial (direction)
-print gscript.read_command('r.mapcalc', expression='friction_slope_radial' + PLACE_ID + ' = friction_slope + radial' + PLACE_ID, overwrite=True)
+print gscript.read_command('r.mapcalc', expression='friction_radial' + PLACE_ID + ' = friction + radial' + PLACE_ID, overwrite=True)
 
 #Reads distances from distances selected (or defined) by user
 distances_f=open(PLUGIN_PATH + "/grass/distances.txt")
@@ -158,7 +158,7 @@ DISTANCES=lines[TYPE-1]
 #Distances methodology
 print gscript.read_command('r.buffer', input='coords', output='distances' + PLACE_ID, distances=DISTANCES , overwrite=True)
 #Friction methodology
-print gscript.read_command('r.cost', input='friction_slope_radial' + PLACE_ID, output='cost' + PLACE_ID, start_points='coords' , overwrite=True)
+print gscript.read_command('r.walk', friction='friction_radial' + PLACE_ID, elevation='dem', output='cost' + PLACE_ID, start_points='coords' , overwrite=True)
 
 #Removes reclass rules
 os.remove(PLUGIN_PATH + '/grass/rules_percentage.txt')

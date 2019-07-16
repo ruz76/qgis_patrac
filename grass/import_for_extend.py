@@ -118,6 +118,10 @@ print gscript.read_command('r.in.ascii', output='friction_slope', input=DATAPATH
 # print gscript.read_command('r.null', map='friction_slope', null='10000')
 #Imports sectors and select them according to Extent
 #Bin would be better (size is smaller, export is faster), but there are some problems with import
+#Imports friction
+print gscript.read_command('r.in.ascii', output='friction', input=DATAPATH+'/grassdata/friction.ascii', overwrite=True)
+#Imports dem
+print gscript.read_command('r.in.ascii', output='dem', input=DATAPATH+'/grassdata/dem.ascii', overwrite=True)
 
 #If the data are from ZABAGED
 if os.path.isfile(DATAINPUTPATH+'/vektor/ZABAGED/line_x/merged_polygons_groupped.shp'):

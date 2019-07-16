@@ -99,7 +99,7 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         drives = drives.split('\000')[:-1]
         items = ("D:", "E:", "F:", "G:", "H:", "I:")
         item, ok = QInputDialog.getItem(self, "select input dialog",
-                                        "list of languages", drives, 0, False)
+                                        "list of drives", drives, 0, False)
         if ok and item:
             return item
         else:

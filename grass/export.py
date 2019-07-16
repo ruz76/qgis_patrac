@@ -116,4 +116,8 @@ print gscript.read_command('r.out.ascii', input='landuse', output=DATAOUTPUTPATH
 #r.out.ascii input=friction_slope output=friction_slope.ascii
 #Bin would be better (size is smaller, export is faster), but there are some problems with import
 print gscript.read_command('r.out.ascii', input='friction_slope', output=DATAOUTPUTPATH+'/grassdata/friction_slope.ascii', overwrite=True)
+#Exports friction only, without slope, we will use r.walk instead r.cost
+print gscript.read_command('r.out.ascii', input='friction', output=DATAOUTPUTPATH+'/grassdata/friction.ascii', overwrite=True)
+#Exports dem, r.walk needs dem to calculate slope in realtime
+print gscript.read_command('r.out.ascii', input='dem', output=DATAOUTPUTPATH+'/grassdata/dem.ascii', overwrite=True)
 

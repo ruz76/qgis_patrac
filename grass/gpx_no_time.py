@@ -37,7 +37,7 @@ sys.path.append("/usr/local/games")
 # uncomment when using standalone WinGRASS installer
 grass7bin_win = r'C:\OSGeo4W64\bin\grass72.bat'
 # Linux
-grass7bin_lin = 'grass72'
+grass7bin_lin = 'grass74'
 # Mac OS X
 # this is TODO
 grass7bin_mac = '/Applications/GRASS/GRASS-7.0.app/'
@@ -155,4 +155,4 @@ f.close()
 #Imports GML to GRASSS
 print gscript.read_command('v.in.ogr', input=DATAPATH + '/search/temp/out_polyline.gml', output='out_polyline', flags='o', overwrite=True)
 #Exports SHP from imported GML
-print gscript.read_command('v.out.ogr', input='out_polyline', output=DATAPATH + '/search/shp/' + SECTOR + '.shp', overwrite=True)
+print gscript.read_command('v.out.ogr', format='ESRI_Shapefile', input='out_polyline', output=DATAPATH + '/search/shp/' + SECTOR + '.shp', overwrite=True)
