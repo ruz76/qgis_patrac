@@ -26,6 +26,8 @@
 # ******************************************************************************
 
 import os
+import sys
+import subprocess
 import shutil
 import csv
 import io
@@ -43,7 +45,12 @@ import tempfile
 import zipfile
 from shutil import copy
 import sched, time
-from string import ascii_uppercase
+
+#If on windows
+try:
+    import win32api
+except:
+    QgsMessageLog.logMessage(u"Linux - no win api", "Patrac")
 
 
 # import qrcode
@@ -169,7 +176,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
             content = f.readline().strip()
             return content
 
-    def downloadZip(self, url):
+    def downloadZip(self, url, path):
         os.umask(0002)
         try:
             req = urllib2.urlopen(url)
@@ -193,22 +200,19 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                         break
                     fp.write(chunk)
             pluginZip = zipfile.ZipFile(zipTemp)
+            pluginZip.extractall(path)
             zipTemp.close()
-            return pluginZip
         except urllib2.HTTPError:
             QMessageBox.information(self.main.iface.mainWindow(), "HTTP Error", u"Nemohu stáhnout plugin z: " + url)
         except urllib2.URLError:
             QMessageBox.information(self.main.iface.mainWindow(), "HTTP Error", u"Nemohu stáhnout plugin z: " + url)
-        return None
 
     def downloadPlugin(self, release):
         pluginPath = self.pluginPath
         pluginsPath = os.path.abspath(os.path.join(pluginPath, ".."))
         # url = "https://github.com/ruz76/qgis_patrac/archive/" + release + ".zip"
         url = "http://gisak.vsb.cz/patrac/qgis/" + release + ".zip"
-        pluginZip = self.downloadZip(url)
-
-        pluginZip.extractall(pluginsPath)
+        self.downloadZip(url, pluginsPath)
         self.copySettingsFiles(pluginPath, pluginsPath + "/qgis_patrac-" + release[1:])
         qgisPath = os.path.abspath(os.path.join(pluginsPath, "../.."))
         shutil.move(pluginPath, qgisPath + "/cache/qgis_patrac_" + str(time.time()))
@@ -223,19 +227,23 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         copy(sourceDirectory + "/xslt/saxon9he.jar", targetDirectory + "/xslt/saxon9he.jar")
 
     def downloadTemplate(self, release):
-        url = "http://gisak.vsb.cz/patrac/qgis/templates." + release + ".zip"
-        pluginZip = self.downloadZip(url)
         patracdata = ""
-        for c in ascii_uppercase:
-            if os.path.exists(os.path.join(c, ":/patracdata/")):
-                patracdata = os.path.join(c, ":/patracdata/")
-        if patracdata == "":
+        if sys.platform.startswith('win'):
+            drives = win32api.GetLogicalDriveStrings()
+            drives = drives.split('\000')[:-1]
+            for drive in drives:
+                if os.path.exists(os.path.join(drive, "patracdata")):
+                    patracdata = os.path.join(drive, "patracdata")
+        else:
             if os.path.exists("/data/patracdata/"):
                 patracdata = "/data/patracdata/"
+
         if patracdata == "":
             QMessageBox.information(self.main.iface.mainWindow(), "Data Error",
                                     u"Nemohu najít adresář patracdata. Aktualizace se nezdařila. Kontaktujte podporu.")
-        pluginZip.extractall(os.path.join(patracdata, "kraje"))
+
+        url = "http://gisak.vsb.cz/patrac/qgis/templates." + release + ".zip"
+        self.downloadZip(url, os.path.join(patracdata, "kraje"))
 
         if not os.path.exists(os.path.join(patracdata, 'archives')):
             os.makedirs(os.path.join(patracdata, 'archives'))
@@ -245,22 +253,27 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         shutil.move(os.path.join(patracdata, "kraje") + "/templates-" + release[1:],
                     os.path.join(patracdata, "kraje", "templates"))
 
+        self.fixDatastore(patracdata)
+
     def fixDatastore(self, patracdata):
-        kraje = ["us", "st", "pl", "kh", "hp", "pa", "vy", "jc", "jm", "zl", "ol", "lb", "ms", "ka"]
+        kraje = ("us", "st", "pl", "kh", "hp", "pa", "vy", "jc", "jm", "zl", "ol", "lb", "ms", "ka")
         for kraj in kraje:
-            if os.path.exists(os.path.join(patracdata, kraj)):
+            if os.path.exists(os.path.join(patracdata, "kraje",  kraj)):
                 if sys.platform.startswith('win'):
+                    QMessageBox.information(None, "INFO", u"Upravuji datový sklad: " + os.path.join(patracdata, "kraje", kraj))
                     p = subprocess.Popen((
-                        self.pluginPath + "/grass/run_fix_datastore.bat", os.path.join(patracdata, kraj),
+                        self.pluginPath + "/grass/run_fix_datastore.bat", os.path.join(patracdata, "kraje", kraj),
                         self.pluginPath))
                     p.wait()
                 else:
                     p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_fix_datastore.sh",
-                                          os.path.join(patracdata, kraj), self.pluginPath)
+                                          os.path.join(patracdata, "kraje", kraj), self.pluginPath))
                     p.wait()
 
     def updateData(self):
-        QMessageBox.information(None, "NOT IMPLEMENTED", u"Tato funkce není zatím implementována")
+        QMessageBox.information(None, "INFO", u"Tato funkce není zatím implementována plně. Aktualizuji šablonu a fixuji sklady.")
+        currentVersion = self.getCurrentVersion()
+        self.downloadTemplate(currentVersion)
 
     def showHelp(self):
         webbrowser.open("file://" + self.pluginPath + "/doc/index.html")

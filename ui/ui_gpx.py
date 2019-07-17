@@ -97,7 +97,6 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         """Shows list of Windows drives"""
         drives = win32api.GetLogicalDriveStrings()
         drives = drives.split('\000')[:-1]
-        items = ("D:", "E:", "F:", "G:", "H:", "I:")
         item, ok = QInputDialog.getItem(self, "select input dialog",
                                         "list of drives", drives, 0, False)
         if ok and item:
@@ -120,8 +119,10 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
             drive = self.getDrive()
             #If not selected than C:, that should be always present
             if drive is None:
-                drive = "C:/"
-                QgsMessageLog.logMessage(u"Nebyl vybrán žádný disk, vybírám C:", "Patrac")
+                #drive = "C:/" Very dangerous feature. Reads all GPX from the C: drive. It can take a lot of time.
+                #removed
+                QgsMessageLog.logMessage(u"Nebyl vybrán žádný disk. Nebudu hledat data.", "Patrac")
+                return
             #TODO - do it better to handle another devices than Garmin
             self.path = drive[:-1] + '/'
         #for f in glob.iglob('E:/Garmin/GPX/*/*.gpx'):  # generator, search immediate subdirectories

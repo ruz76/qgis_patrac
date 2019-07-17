@@ -98,7 +98,8 @@ import grass.script.setup as gsetup
 gsetup.init(gisbase,
             gisdb, location, mapset)
 
-DISTANCES=str(sys.argv[3]) 
+DISTANCES = open(DATAPATH + "/pracovni/distancesCostedEquation.txt", 'r').read()
+#DISTANCES=str(sys.argv[3])
 
 #Gets all distances costed created in cost_distance and reads minimum value from it
 #I think that now this is not necessary, because we use only one start point so the DISTANCES has only one layer

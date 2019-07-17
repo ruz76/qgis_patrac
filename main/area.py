@@ -39,6 +39,7 @@ from glob import glob
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+
 class Area(object):
     def __init__(self, widget):
         self.widget = widget
@@ -115,17 +116,27 @@ class Area(object):
                     if (i == 0):
                         distances_costed_cum = "(distances0_costed/" + cur_weight + ")"
                     else:
-                        distances_costed_cum = distances_costed_cum + ",(distances" + str(i) + "_costed/" + cur_weight + ")"
+                        distances_costed_cum = distances_costed_cum + ",(distances" + str(
+                            i) + "_costed/" + cur_weight + ")"
                     i += 1
-                #print "DC: min(" + distances_costed_cum + ")*" + str(max_weight)
-                self.createCumulativeArea("min(" + distances_costed_cum + ")*" + str(max_weight))
+                # print "DC: min(" + distances_costed_cum + ")*" + str(max_weight)
+                self.saveDistancesCostedEquation("min(" + distances_costed_cum + ")*" + str(max_weight))
+                self.createCumulativeArea()
         else:
             self.generateRadialOnPoint(features[0])
             self.writeAzimuthReclass(0, 0, 0)
             self.findAreaWithRadial(features[0], 0)
-            self.createCumulativeArea("distances0_costed")
+            self.saveDistancesCostedEquation("distances0_costed")
+            self.createCumulativeArea()
         self.widget.setCursor(Qt.ArrowCursor)
         return
+
+    def saveDistancesCostedEquation(self, distances_costed_cum):
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        f = open(DATAPATH + '/pracovni/distancesCostedEquation.txt', 'w')
+        f.write(distances_costed_cum)
+        f.close()
 
     def addPlaceToTheCenter(self):
         self.setCursor(Qt.WaitCursor)
@@ -146,7 +157,7 @@ class Area(object):
         provider.addFeatures([fet])
         layer.commitChanges()
 
-    def createCumulativeArea(self, distances_costed_cum):
+    def createCumulativeArea(self):
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
         # Windows - nutno nejdrive smazat tif
@@ -161,15 +172,14 @@ class Area(object):
             os.remove(DATAPATH + '/pracovni/distances_costed_cum.tfw')
 
         QgsMessageLog.logMessage(
-            "Spoustim python " + self.pluginPath + "/grass/run_distance_costed_cum.sh " + distances_costed_cum,
+            "Spoustim python " + self.pluginPath + "/grass/run_distance_costed_cum.sh",
             "Patrac")
         if sys.platform.startswith('win'):
-            p = subprocess.Popen((self.pluginPath + "/grass/run_distance_costed_cum.bat", DATAPATH, self.pluginPath,
-                                  distances_costed_cum))
+            p = subprocess.Popen((self.pluginPath + "/grass/run_distance_costed_cum.bat", DATAPATH, self.pluginPath))
             p.wait()
         else:
-            p = subprocess.Popen(('bash', self.pluginPath + "/grass/run_distance_costed_cum.sh", DATAPATH,
-                                  self.pluginPath, distances_costed_cum))
+            p = subprocess.Popen(
+                ('bash', self.pluginPath + "/grass/run_distance_costed_cum.sh", DATAPATH, self.pluginPath))
             p.wait()
 
         # Adds exported raster to map
@@ -195,7 +205,9 @@ class Area(object):
         QgsMessageLog.logMessage(u"Souřadnice: " + coords, "Patrac")
         if sys.platform.startswith('win'):
             p = subprocess.Popen((self.pluginPath + "/grass/run_cost_distance.bat", DATAPATH, self.pluginPath, str(id)
-                                  , str(self.widget.personType)))
+                                  , str(self.widget.personType)),
+                                 shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = p.communicate()
             p.wait()
         else:
             p = subprocess.Popen(

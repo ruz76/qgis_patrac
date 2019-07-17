@@ -58,6 +58,12 @@ from time import gmtime, strftime
 
 import csv, io, webbrowser, filecmp, uuid
 
+#If on windows
+try:
+    import win32api
+except:
+    QgsMessageLog.logMessage(u"Linux - no win api", "Patrac")
+
 class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def __init__(self, plugin):
 
@@ -382,11 +388,11 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             drives = drives.split('\000')[:-1]
             drives_gpx = []
             for drive in drives:
-                if os.path.isdir(drive[:-1] + '/Garmin/GPX'):
-                    drives_gpx = drive[:-1]
+                if os.path.isdir(drive + 'Garmin/GPX'):
+                    drives_gpx.append(drive)
             if len(drives_gpx) == 1:
                 # nice, only one GPX dir is available
-                self.copyGpxToPath(drives_gpx[0] + '/Garmin/GPX')
+                self.copyGpxToPath(drives_gpx[0] + 'Garmin/GPX')
             if len(drives_gpx) == 0:
                 # Not Garmin. TODO
                 QMessageBox.information(None, "INFO:", u"Nenašel jsem připojenou GPS. Soubor musite uložit jako z reportu ručně.")
@@ -395,14 +401,20 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 item, ok = QInputDialog.getItem(self, "select input dialog",
                                                 "list of drives", drives_gpx, 0, False)
                 if ok and item:
-                    self.copyGpxToPath(item + '/Garmin/GPX')
+                    self.copyGpxToPath(item + 'Garmin/GPX')
         else:
             QMessageBox.information(None, "INFO:", u"Funkce není pro tento OS podporována.")
 
     def copyGpxToPath(self, path):
         prjfi = QFileInfo(QgsProject.instance().fileName())
         DATAPATH = prjfi.absolutePath()
-        copy(DATAPATH + '/sektory/gpx/all.gpx', path + "/sektory.gpx")
+        time = strftime("%Y-%m-%d_%H-%M-%S", gmtime())
+        copy(DATAPATH + '/sektory/gpx/all.gpx', path + "/sektory_" + time + ".gpx")
+        if os.path.isfile(path + "/sektory_" + time + ".gpx"):
+            QMessageBox.information(None, "INFO:", u"Sektory byly zkopírovány do zařízení: " + path + "/sektory_" + time + ".gpx")
+        else:
+            QMessageBox.information(None, "CHYBA:",
+                                    u"Při kopírování sektorů došlo k chybě. Zkopírujte přes správce souborů z cesty: " + DATAPATH + '/sektory/gpx/all.gpx')
 
     def saveUnitsInformation(self):
         f = io.open(self.pluginPath + '/grass/units.txt.tmp', 'w', encoding='utf-8')
