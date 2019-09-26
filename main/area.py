@@ -99,7 +99,8 @@ class Area(object):
                 self.generateRadialOnPoint(features[len(features) - 1])
                 self.writeAzimuthReclass(azimuth, 30, 100)
                 self.findAreaWithRadial(features[len(features) - 1], 0)
-                self.createCumulativeArea("distances0_costed")
+                self.saveDistancesCostedEquation("distances0_costed")
+                self.createCumulativeArea()
             else:
                 self.writeAzimuthReclass(0, 0, 0)
                 i = 0

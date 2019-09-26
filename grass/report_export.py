@@ -352,4 +352,20 @@ with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
                         f.write(u"\n<p>Vhodné nasadit vzdušný pátrací tým (APT). Helikoptéru nebo dron. Prostor obsahuje volné plochy bez porostu.</p>\n");
         i=i+1
 
+maxtime = 3
+if os.path.isfile(PLUGIN_PATH + "/grass/maxtime.txt"):
+    try:
+        maxtime = int(open(PLUGIN_PATH + "/grass/maxtime.txt", 'r').read())
+    except ValueError:
+        maxtime = 3
 
+if maxtime <= 0:
+    maxtime = 3
+
+f.write(u"\n<p>K propátrání do " + str(int(maxtime)) + u" hodin potřebujete:</p>\n")
+f.write(u"\n<ul>\n")
+f.write(u"\n<li>" + str(int(math.ceil(float(SUM_POCET_KPT) * (float(3) / float(maxtime))))) + u" KPT</li>\n")
+f.write(u"\n<li>" + str(int(math.ceil(float(SUM_POCET_PT) * (float(3) / float(maxtime))))) + u" PT</li>\n")
+f.write(u"\n<li>Minimálně jeden VPT</li>\n")
+f.write(u"\n<li>Minimálně jeden APT</li>\n")
+f.write(u"\n</ul>\n")

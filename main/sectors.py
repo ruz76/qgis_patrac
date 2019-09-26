@@ -427,6 +427,7 @@ class Sectors(object):
         AREAS = ""
         for feature in features:
             AREAS = AREAS + "!" + str(feature['area_ha'])
+        print ("AAA", AREAS)
 
         # GRASS exports to SHP
         if sys.platform.startswith('win'):

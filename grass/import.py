@@ -125,12 +125,12 @@ print gscript.read_command('r.in.ascii', output='dem', input=DATAPATH+'/grassdat
 
 #If the data are from ZABAGED
 if os.path.isfile(DATAINPUTPATH+'/vektor/ZABAGED/line_x/merged_polygons_groupped.shp'):
-    print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/ZABAGED/line_x', layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o")
+    print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/ZABAGED/line_x', snap=1, layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o")
     print gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=PLUGIN_PATH+'/grass/landuse_type_zbg.rules')
 
 #If the data are from OSM
 if os.path.isfile(DATAINPUTPATH+'/vektor/OSM/line_x/merged_polygons_groupped.shp'):
-    print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/OSM/line_x', layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o")
+    print gscript.read_command('v.in.ogr', output='sectors_group', input=DATAINPUTPATH+'/vektor/OSM/line_x', snap=1, layer='merged_polygons_groupped', spatial=str(XMIN)+','+str(YMIN)+','+str(XMAX)+','+str(YMAX), overwrite=True, flags="o")
     print gscript.read_command('r.reclass', input='landuse', output='landuse_type', rules=PLUGIN_PATH+'/grass/landuse_type_osm.rules')
 
 #Computes areas

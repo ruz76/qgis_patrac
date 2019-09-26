@@ -285,7 +285,7 @@ class Project(object):
         else:
             return True
 
-    def createProject(self, index):
+    def createProject(self, index, desc):
         # Check if the project has okresy_pseudo.shp
 
         QgsMessageLog.logMessage("CREATING PROJECT", "Patrac")
@@ -376,7 +376,7 @@ class Project(object):
         self.zoomToExtent(XMIN, YMIN, XMAX, YMAX)
         self.addAllZPMRasters(KRAJ_DATA_PATH)
         self.widget.Sectors.recalculateSectors(True)
-        self.createNewSearch(name, region)
+        self.createNewSearch(name, desc, region)
         self.widget.settingsdlg.updateSettings()
         self.saveRegion(region, NEW_PROJECT_PATH)
         self.saveExtent(XMIN, YMIN, XMAX, YMAX, NEW_PROJECT_PATH)
@@ -399,10 +399,10 @@ class Project(object):
         self.canvas.setExtent(rect)
         self.canvas.refresh()
 
-    def createNewSearch(self, name, region):
+    def createNewSearch(self, name, desc, region):
         QgsMessageLog.logMessage(u"Vytvářím nové pátrání: " + name + " " + region, "Patrac")
         searchid = self.createSearchId(name)
-        self.createSearchOnServer(searchid, name, region)
+        self.createSearchOnServer(searchid, name, desc, region)
 
     def createSearchId(self, name):
         dirname = self.getSafeDirectoryName(name.split(" ")[0])
@@ -416,13 +416,14 @@ class Project(object):
         f.close()
         return searchid20
 
-    def createSearchOnServer(self, searchid, name, region):
+    def createSearchOnServer(self, searchid, name, desc, region):
         response = None
         # Connects to the server to obtain list of users based on list of locations
         try:
             escaped_name = quote(name.encode('utf-8'))
-            url = self.serverUrl + 'operation=createnewsearch&id=pcr007&searchid='\
-                  + searchid + '&description=' + escaped_name + '&region=' + region
+            escaped_desc = quote(desc.encode('utf-8'))
+            url = self.serverUrl + 'search.php?operation=createnewsearch&id=pcr007&searchid='\
+                  + searchid + '&name=' + escaped_name + '&desc=' + escaped_desc + '&region=' + region
             response = urllib2.urlopen(url, None, 5)
             searchStatus = response.read()
         except urllib2.URLError:

@@ -1,5 +1,6 @@
 <PAMDataset>
   <PAMRasterBand band="1">
+    <Description>distances_costed_cum</Description>
     <Metadata>
       <MDI key="COLOR_TABLE_RULES_COUNT">255</MDI>
       <MDI key="COLOR_TABLE_RULE_RGB_0">1.000000e+01 1.033320e+01 68 1 84 68 2 86</MDI>

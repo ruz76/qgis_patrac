@@ -56,7 +56,7 @@ from datetime import datetime, timedelta
 from shutil import copy
 from time import gmtime, strftime
 
-import csv, io, webbrowser, filecmp, uuid
+import csv, io, webbrowser, filecmp, uuid, random
 
 #If on windows
 try:
@@ -72,7 +72,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.canvas = self.plugin.iface.mapCanvas()
         self.maxVal = 100
         self.minVal = 0
-        self.serverUrl = 'http://gisak.vsb.cz/patrac/mserver.php?'
+        self.serverUrl = 'http://gisak.vsb.cz/patrac/'
         self.currentStep = 1
 
         userPluginPath = QFileInfo(QgsApplication.qgisUserDbFilePath()).path() + "python/plugins/qgis_patrac"
@@ -108,15 +108,14 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.tbtnExportSectors.clicked.connect(self.exportSectors)
         self.tbtnReportExportSectors.clicked.connect(self.runExpertReportExportSectors)
         self.tbtnShowSettings.clicked.connect(self.showSettings)
-        self.guideShowSettings.clicked.connect(self.showSettings)
         self.tbtnExtendRegion.clicked.connect(self.extendRegion)
         self.tbtnImportPaths.clicked.connect(self.showImportGpx)
+        #self.tbtnShowSearchers.clicked.connect(self.showPeopleSimulation)
         self.tbtnShowSearchers.clicked.connect(self.showPeople)
         self.tbtnShowSearchersTracks.clicked.connect(self.showPeopleTracks)
         self.tbtnShowMessage.clicked.connect(self.showMessage)
 
         self.tbtnInsertFinal.clicked.connect(self.insertFinal)
-        self.guideInsertFinal.clicked.connect(self.insertFinal)
 
         # Dialogs and tools are defined here
         self.settingsdlg = Ui_Settings(self.pluginPath, self)
@@ -173,8 +172,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.Project.createProject(name)
 
     def runCreateProjectGuide(self, index):
-        #name = self.guideMunicipalitySearch.text()
-        self.Project.createProject(index)
+        desc = self.guideSearchDescription.text()
+        self.Project.createProject(index, desc)
 
     def municipalitySearch(self, textBox):
         """Tries to find municipallity in list and zoom to coordinates of it."""
@@ -318,6 +317,9 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # saves information about available resources
         self.saveUnitsInformation()
 
+        # saves maxtime information
+        self.saveMaxTimeInformation()
+
         # select sectors
         self.runGuideGetSectors()
 
@@ -444,6 +446,11 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         f.close()
 
         copy(self.pluginPath + '/grass/units.txt.tmp', self.pluginPath + "/grass/units.txt")
+
+    def saveMaxTimeInformation(self):
+        f = io.open(self.pluginPath + '/grass/maxtime.txt', 'w', encoding='utf-8')
+        f.write(self.guideMaxTime.text())
+        f.close()
 
     def setCompleter(self, textBox):
         """Sets the autocompleter for municipalitities."""
@@ -903,9 +910,12 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         try:
             # Connects the server with log
             response = urllib2.urlopen(
-                self.serverUrl + 'operation=gettracks&searchid=' + self.getSearchID(), None, 20)
+                self.serverUrl + 'track.php?searchid=' + self.getSearchID(), None, 20)
             # Reads locations from response
             locations = response.read()
+            if "Error" in locations:
+                QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
+                return
             # Splits to lines
             lines = locations.split("\n")
             # Loops the lines
@@ -934,6 +944,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                     if len(points) > 1:
                         line = QgsGeometry.fromPolyline(points)
                         fet.setGeometry(line)
+                        print(line.length())
                         provider.addFeatures([fet])
             layer.commitChanges()
             layer.triggerRepaint()
@@ -971,7 +982,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         try:
             # Connects the server with locations
             response = urllib2.urlopen(
-                self.serverUrl + 'operation=getlocations&searchid=' + self.getSearchID(), None, 5)
+                self.serverUrl + 'loc.php?searchid=' + self.getSearchID(), None, 5)
             # Reads locations from response
             locations = response.read()
             # print("LOCATIONS: " + locations)
@@ -1002,6 +1013,47 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
         self.setCursor(Qt.ArrowCursor)
 
+    def showPeopleSimulation(self):
+        """Shows location of logged positions in map"""
+
+        # Check if the project has patraci.shp
+        if not self.Utils.checkLayer("/pracovni/patraci.shp"):
+            QMessageBox.information(None, "CHYBA:",
+                                    u"Projekt neobsahuje vrstvu pátračů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+            return
+
+        self.setCursor(Qt.WaitCursor)
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        layer = None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if lyr.source() == DATAPATH + "/pracovni/patraci.shp":
+                layer = lyr
+                break
+        provider = layer.dataProvider()
+        features = provider.getFeatures()
+        sectorid = 0
+        layer.startEditing()
+        listOfIds = [feat.id() for feat in layer.getFeatures()]
+        # Deletes all features in layer patraci.shp
+        layer.deleteFeatures(listOfIds)
+        center = self.plugin.canvas.center()
+        hh = int(self.plugin.canvas.height() / 2)
+        for i in range(0, 10):
+            fet = QgsFeature()
+            rand = random.randint(-1 * hh, hh)
+            rand2 = random.randint(-1 * hh, hh)
+            crs_src = QgsCoordinateReferenceSystem(5514)
+            crs_dest = QgsCoordinateReferenceSystem(4326)
+            xform = QgsCoordinateTransform(crs_src, crs_dest)
+            point_5514 = QgsPoint(center.x() + rand, center.y() + rand2)
+            point_4326 = xform.transform(point_5514)
+            fet.setGeometry(QgsGeometry.fromPoint(point_4326))
+            fet.setAttributes(['idpatrani', '2019-09-03T13:00:00', 'A', 'Karel ' + str(i)])
+            provider.addFeatures([fet])
+        layer.commitChanges()
+        layer.triggerRepaint()
+        self.setCursor(Qt.ArrowCursor)
 
     def testHds(self):
         self.Hds.testHds()

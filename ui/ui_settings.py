@@ -81,7 +81,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.setupUi(self)
         self.pluginPath = pluginPath
         self.main = parent
-        self.serverUrl = 'http://gisak.vsb.cz/patrac/mserver.php?'
+        self.serverUrl = 'http://gisak.vsb.cz/patrac/'
         self.comboBoxDistance.addItem(u"LSOM")
         self.comboBoxDistance.addItem(u"Hill")
         self.comboBoxDistance.addItem(u"UK")
@@ -297,10 +297,10 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.setStatus("callonduty", self.searchID)
 
     def callToJoin(self):
-        self.setStatus("calltojoin", self.searchID)
+        self.setStatus("calltocome", self.searchID)
 
     def putToSleep(self):
-        self.setStatus("released", "")
+        self.setStatus("waiting", "")
 
     def getSelectedSystemUsers(self):
         # indexes = self.selectionModel.selectedIndexes()
@@ -365,7 +365,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         try:
             # TODO change hardcoded value for id
             response = urllib2.urlopen(
-                self.serverUrl + 'operation=changestatus&id=pcr1234&status_to=' + status + '&ids=' + ids + "&searchid=" + searchid,
+                self.serverUrl + 'users.php?operation=changestatus&id=pcr007&status_to=' + status + '&ids=' + ids + "&searchid=" + searchid,
                 None, 5)
             changed = response.read()
             self.refreshSystemUsers()
@@ -388,7 +388,7 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
 
     def getSystemUsers(self):
         # TODO change hardcoded value for id to value from configuration
-        return self.getDataFromUrl(self.serverUrl + 'operation=getsystemusers&id=pcr1234', 5)
+        return self.getDataFromUrl(self.serverUrl + 'users.php?operation=getsystemusers&id=pcr007', 5)
 
     def getDataFromUrl(self, url, timeout):
         response = None
@@ -548,10 +548,9 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
 
     def fillCmbStatus(self):
         self.comboBoxStatus.addItem(u"Všichni")
-        self.comboBoxStatus.addItem("sleeping")
         self.comboBoxStatus.addItem("waiting")
         self.comboBoxStatus.addItem("callonduty")
-        self.comboBoxStatus.addItem("calltojoin")
+        self.comboBoxStatus.addItem("calltocome")
         self.comboBoxStatus.addItem("onduty")
 
     def accept(self):

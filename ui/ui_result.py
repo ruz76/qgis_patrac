@@ -201,7 +201,7 @@ class Ui_Result(QtGui.QDialog, FORM_CLASS):
         response = None
         # Connects to the server to close the search
         try:
-            url = 'http://gisak.vsb.cz/patrac/mserver.php?operation=closesearch&id=pcr007&searchid=' + self.searchid
+            url = 'http://gisak.vsb.cz/patrac/search.php?operation=closesearch&id=pcr007&searchid=' + self.searchid
             print url
             response = urllib2.urlopen(url, None, 5)
             searchStatus = response.read()

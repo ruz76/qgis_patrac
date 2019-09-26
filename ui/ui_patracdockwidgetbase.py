@@ -43,9 +43,9 @@ class Ui_PatracDockWidget(object):
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.tabExpert.setLayout(self.verticalLayout)
 
-        self.tabHelp = QtGui.QWidget()
-        self.tabWidget.addTab(self.tabHelp, u"Nápověda")
-        self.setHelpTab()
+        # self.tabHelp = QtGui.QWidget()
+        # self.tabWidget.addTab(self.tabHelp, u"Nápověda")
+        # self.setHelpTab()
 
         self.verticalGuideLayout = QtGui.QVBoxLayout(self.tabGuide)
         self.verticalGuideLayout.setObjectName(_fromUtf8("verticalGuideLayout"))
@@ -95,14 +95,6 @@ class Ui_PatracDockWidget(object):
         self.tbtnReportExportSectors.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Vytvořit report", None,
                                                                        QtGui.QApplication.UnicodeUTF8))
 
-        self.tbtnShowSettings = QtGui.QPushButton(self.dockWidgetContents)
-        self.tbtnShowSettings.setObjectName(_fromUtf8("tbtnShowSettings"))  
-        self.tbtnShowSettings.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "settings.png")));
-        self.tbtnShowSettings.setIconSize(QSize(32,32));
-        self.tbtnShowSettings.setFixedSize(QSize(42,42));
-        self.horizontalLayoutToolbar.addWidget(self.tbtnShowSettings)
-        self.tbtnShowSettings.setToolTip(QtGui.QApplication.translate("PatracDockWidget", "Nastavení", None, QtGui.QApplication.UnicodeUTF8)) 
- 
         self.verticalLayout.addLayout(self.horizontalLayoutToolbar) 
 
         self.horizontalLayout_4 = QtGui.QHBoxLayout()
@@ -218,6 +210,31 @@ class Ui_PatracDockWidget(object):
         self.tbtnShowMessage.setToolTip(
             QtGui.QApplication.translate("PatracDockWidget", "Zprávy", None, QtGui.QApplication.UnicodeUTF8))
 
+        self.verticalLayout.addLayout(self.horizontalLayoutToolbar_5)
+
+        self.setGuideSteps()
+
+        self.horizontalGeneralToolbarLayout = QtGui.QHBoxLayout()
+        self.horizontalGeneralToolbarLayout.setObjectName(_fromUtf8("horizontalGeneralToolbarLayout"))
+
+        self.helpShow = QtGui.QPushButton(self.dockWidgetContents)
+        self.helpShow.setObjectName(_fromUtf8("helpShow"))
+        self.helpShow.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "help.png")));
+        self.helpShow.setIconSize(QSize(32, 32));
+        self.helpShow.setFixedSize(QSize(42, 42));
+        self.helpShow.setToolTip(
+            QtGui.QApplication.translate("PatracDockWidget", "Nápověda", None, QtGui.QApplication.UnicodeUTF8))
+        self.horizontalGeneralToolbarLayout.addWidget(self.helpShow)
+
+        self.tbtnShowSettings = QtGui.QPushButton(self.dockWidgetContents)
+        self.tbtnShowSettings.setObjectName(_fromUtf8("tbtnShowSettings"))
+        self.tbtnShowSettings.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "settings.png")));
+        self.tbtnShowSettings.setIconSize(QSize(32, 32));
+        self.tbtnShowSettings.setFixedSize(QSize(42, 42));
+        self.tbtnShowSettings.setToolTip(
+            QtGui.QApplication.translate("PatracDockWidget", "Nastavení", None, QtGui.QApplication.UnicodeUTF8))
+        self.horizontalGeneralToolbarLayout.addWidget(self.tbtnShowSettings)
+
         self.tbtnInsertFinal = QtGui.QPushButton(self.dockWidgetContents)
         self.tbtnInsertFinal.setObjectName(_fromUtf8("tbtnInsertFinal"))
         self.tbtnInsertFinal.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "set_result.png")));
@@ -225,26 +242,14 @@ class Ui_PatracDockWidget(object):
         self.tbtnInsertFinal.setFixedSize(QSize(42, 42));
         self.tbtnInsertFinal.setToolTip(QtGui.QApplication.translate(
             "PatracDockWidget", "Zadat výsledek", None, QtGui.QApplication.UnicodeUTF8))
-        self.horizontalLayoutToolbar_5.addWidget(self.tbtnInsertFinal)
-
-        self.verticalLayout.addLayout(self.horizontalLayoutToolbar_5)
-
-        self.setGuideSteps()
+        self.horizontalGeneralToolbarLayout.addWidget(self.tbtnInsertFinal)
 
         self.tabLayout.addWidget(self.tabWidget)
+        self.tabLayout.addLayout(self.horizontalGeneralToolbarLayout)
 
         PatracDockWidget.setWidget(self.dockWidgetContents)
         self.retranslateUi(PatracDockWidget)
         QtCore.QMetaObject.connectSlotsByName(PatracDockWidget)
-
-    def setHelpTab(self):
-        self.verticalHelpLayout = QtGui.QVBoxLayout(self.tabHelp)
-        self.verticalHelpLayout.setObjectName(_fromUtf8("verticalHelpLayout"))
-        self.helpShow = QtGui.QPushButton(self.dockWidgetContents)
-        self.helpShow.setObjectName(_fromUtf8("helpShow"))
-        self.helpShow.setText(u"Zobrazit nápovědu")
-        self.verticalHelpLayout.addWidget(self.helpShow)
-        self.tabHelp.setLayout(self.verticalHelpLayout)
 
     def setGuideSteps(self):
         self.tabGuideSteps = QtGui.QTabWidget()
@@ -274,7 +279,7 @@ class Ui_PatracDockWidget(object):
         self.verticalGuideLayoutStep1.setObjectName(_fromUtf8("verticalGuideLayoutStep1"))
         self.guideLabelStep1 = QtGui.QLabel(self.dockWidgetContents)
         self.guideLabelStep1.setObjectName(_fromUtf8("guideLabelStep1"))
-        self.guideLabelStep1.setText(u"Zadejte název obce")
+        self.guideLabelStep1.setText(u"Zadejte název obce a popis")
         self.guideLabelStep1.setWordWrap(True)
         self.verticalGuideLayoutStep1.addWidget(self.guideLabelStep1)
         self.guideMunicipalitySearch = QLineEdit()
@@ -282,6 +287,11 @@ class Ui_PatracDockWidget(object):
         self.guideMunicipalitySearch.setAlignment(Qt.AlignLeft)
         self.guideMunicipalitySearch.setPlaceholderText(u"Zadejte název obce ...")
         self.verticalGuideLayoutStep1.addWidget(self.guideMunicipalitySearch)
+        self.guideSearchDescription = QLineEdit()
+        self.guideSearchDescription.setMaximumWidth(280)
+        self.guideSearchDescription.setAlignment(Qt.AlignLeft)
+        self.guideSearchDescription.setPlaceholderText(u"Zadejte stručný popis pátrání")
+        self.verticalGuideLayoutStep1.addWidget(self.guideSearchDescription)
         self.guideStep1Next = QtGui.QPushButton(self.dockWidgetContents)
         self.guideStep1Next.setObjectName(_fromUtf8("guideStep1Next"))
         self.guideStep1Next.setText(u"Další")
@@ -355,10 +365,23 @@ class Ui_PatracDockWidget(object):
         self.verticalGuideLayoutStep5.setObjectName(_fromUtf8("verticalGuideLayoutStep5"))
         self.guideLabelStep5 = QtGui.QLabel(self.dockWidgetContents)
         self.guideLabelStep5.setObjectName(_fromUtf8("guideLabelStep5"))
-        self.guideLabelStep5.setText(u"Zde můžete upravit počty prostředků")
+        self.guideLabelStep5.setText(u"Zde můžete upravit počty prostředků, pokud je aktuálně znáte.")
         self.guideLabelStep5.setWordWrap(True)
         self.verticalGuideLayoutStep5.addWidget(self.guideLabelStep5)
         self.loadAvailableUnits()
+        self.guideLabelStep5b = QtGui.QLabel(self.dockWidgetContents)
+        self.guideLabelStep5b.setObjectName(_fromUtf8("guideLabelStep5b"))
+        self.guideLabelStep5b.setText(u"Nebo stanovit maximální dobu pátrání.")
+        self.guideLabelStep5b.setWordWrap(True)
+        self.verticalGuideLayoutStep5.addWidget(self.guideLabelStep5b)
+        self.guideMaxTimeLabel = QtGui.QLabel(self.dockWidgetContents)
+        self.guideMaxTimeLabel.setText(u"Maximální doba pátrání")
+        self.guideMaxTime = QLineEdit()
+        self.guideMaxTime.setText("3")
+        self.horizontalMaxTimeLayout = QtGui.QHBoxLayout(self.tabGuideStep5)
+        self.horizontalMaxTimeLayout.addWidget(self.guideMaxTimeLabel)
+        self.horizontalMaxTimeLayout.addWidget(self.guideMaxTime)
+        self.verticalGuideLayoutStep5.addLayout(self.horizontalMaxTimeLayout)
         self.guideStep5Next = QtGui.QPushButton(self.dockWidgetContents)
         self.guideStep5Next.setObjectName(_fromUtf8("guideStep5Next"))
         self.guideStep5Next.setText(u"Další")
@@ -391,24 +414,6 @@ class Ui_PatracDockWidget(object):
 
         self.horizontalLayoutToolbarGuide6 = QtGui.QHBoxLayout()
         self.horizontalLayoutToolbarGuide6.setObjectName(_fromUtf8("horizontalLayoutToolbarGuide6"))
-
-        self.guideInsertFinal = QtGui.QPushButton(self.dockWidgetContents)
-        self.guideInsertFinal.setObjectName(_fromUtf8("guideInsertFinal"))
-        self.guideInsertFinal.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "set_result.png")));
-        self.guideInsertFinal.setIconSize(QSize(32, 32));
-        self.guideInsertFinal.setFixedSize(QSize(42, 42));
-        self.guideInsertFinal.setToolTip(QtGui.QApplication.translate(
-            "PatracDockWidget", "Zadat výsledek", None, QtGui.QApplication.UnicodeUTF8))
-        self.horizontalLayoutToolbarGuide6.addWidget(self.guideInsertFinal)
-
-        self.guideShowSettings = QtGui.QPushButton(self.dockWidgetContents)
-        self.guideShowSettings.setObjectName(_fromUtf8("guideShowSettings"))
-        self.guideShowSettings.setIcon(QIcon(os.path.join(os.path.dirname(__file__), "settings.png")));
-        self.guideShowSettings.setIconSize(QSize(32, 32));
-        self.guideShowSettings.setFixedSize(QSize(42, 42));
-        self.guideShowSettings.setToolTip(
-            QtGui.QApplication.translate("PatracDockWidget", "Nastavení", None, QtGui.QApplication.UnicodeUTF8))
-        self.horizontalLayoutToolbarGuide6.addWidget(self.guideShowSettings)
 
         self.verticalGuideLayoutStep6.addLayout(self.horizontalLayoutToolbarGuide6)
         self.tabGuideStep6.setLayout(self.verticalGuideLayoutStep6)
