@@ -46,6 +46,8 @@ from dateutil import tz
 from dateutil import parser
 from dateutil.tz import tzutc, tzlocal
 import fnmatch
+from array import array
+import getpass
 
 #If on windows
 try:
@@ -104,6 +106,18 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         else:
             return None
 
+    def getDriveLinux(self):
+        """Shows list of user drives"""
+        username = getpass.getuser()
+        drives = []
+        for dirname in os.listdir('/media/' + username + '/'):
+            drives.append('/media/' + username + '/' + dirname + '/')
+        item, ok = QInputDialog.getItem(self, "select input dialog",
+                                        "list of drives", drives, 0, False)
+        if ok and item:
+            return item
+        else:
+            return None
 
     def fillListViewTracks(self):
         """Fills list with tracks"""
@@ -111,8 +125,6 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
         for f in files:
             if os.path.isfile(f):
                 os.remove(f)
-        #For Linux is path set just for testing purposes
-        #TODO - change to have real connected devices
         #If Windows
         if sys.platform.startswith('win'):
             #Get drive from user select
@@ -125,6 +137,17 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                 return
             #TODO - do it better to handle another devices than Garmin
             self.path = drive[:-1] + '/'
+        # For Linux is path set just for testing purposes
+        # TODO - change to have real connected devices
+        else:
+            drive = self.getDriveLinux()
+            if drive is None:
+                #drive = "C:/" Very dangerous feature. Reads all GPX from the C: drive. It can take a lot of time.
+                #removed
+                QgsMessageLog.logMessage(u"Nebyl vybrán žádný disk. Nebudu hledat data.", "Patrac")
+                return
+            self.path = drive
+
         #for f in glob.iglob('E:/Garmin/GPX/*/*.gpx'):  # generator, search immediate subdirectories
         i = 0
         for root, dirnames, filenames in os.walk(self.path):
@@ -132,9 +155,9 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
             #for f in iglob(self.path, recursive=True):
                 #copyfile(f, self.DATAPATH + '/search/gpx/' + SECTOR + '/' + os.path.basename(f))
                 #First copy original file to search/gpx/ directory
-                shutil.copyfile(os.path.join(root, f.decode('utf8')), self.DATAPATH + '/search/gpx/' + os.path.basename(f.decode('utf8')))
+                #shutil.copyfile(os.path.join(root, f.decode('utf8')), self.DATAPATH + u'/search/gpx/' + os.path.basename(f.decode('utf8')))
                 #Then copy the same file to search/tem/ directory and name it according to position in list
-                shutil.copyfile(os.path.join(root, f.decode('utf8')), self.DATAPATH + '/search/temp/' + str(i) + '.gpx')
+                shutil.copyfile(os.path.join(root, f), self.DATAPATH + '/search/temp/' + str(i) + '.gpx')
                 #Notice size of list.csv
                 listSize = 0
                 if i > 0:
@@ -142,11 +165,11 @@ class Ui_Gpx(QtGui.QDialog, FORM_CLASS):
                 #Run transformation to get time extent of the GPX
                 #Extent is added to search/temp/list.csv
                 if sys.platform.startswith('win'):
-                    QgsMessageLog.logMessage(str(f), "Patrac")
+                    # QgsMessageLog.logMessage(str(f), "Patrac")
                     p = subprocess.Popen((self.pluginPath + '/xslt/run_xslt_extent.bat', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
                     p.wait()
                 else:
-                    QgsMessageLog.logMessage(str(f), "Patrac")
+                    # QgsMessageLog.logMessage(str(f), "Patrac")
                     p = subprocess.Popen(('bash', self.pluginPath + '/xslt/run_xslt_extent.sh', self.pluginPath, self.DATAPATH + '/search/temp/' + str(i) + '.gpx', self.DATAPATH + '/search/temp/list.csv'))
                     p.wait()
                 i=i+1

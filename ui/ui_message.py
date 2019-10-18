@@ -67,7 +67,7 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         self.listWidgetHistory.setWordWrap(True)
         self.fillMessagesList()
         self.listWidgetHistory.scrollToBottom()
-        self.listWidgetHistory.itemDoubleClicked.connect(self.messagesDoubleClick)
+        self.listWidgetMessages.itemDoubleClicked.connect(self.messagesDoubleClick)
 
     def addGpx(self):
         self.lineEditPath.setText(self.DATAPATH + "/sektory/gpx/all.gpx")
@@ -127,7 +127,7 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")
             self.close()
 
-        #self.getMessage()
+        self.getMessage()
 
     def getSearchID(self):
         prjfi = QFileInfo(QgsProject.instance().fileName())
@@ -253,26 +253,18 @@ class Ui_Message(QtGui.QDialog, FORM_CLASS):
         # Connects to the server to obtain message for coordinator
         try:
             response = urllib2.urlopen(
-                self.serverUrl + 'message.php?operation=getmessages&searchid=' + self.getSearchID() + '&id=coordinator' + self.getSearchID(), None, 5)
+                self.serverUrl + 'message.php?operation=getmessages&lastereceivedmessageid=0&searchid=' + self.getSearchID() + '&sessionid=coordinator' + self.getSearchID(), None, 5)
             message = response.read()
-            #print message
-            cols = message.split(";")
-            if cols != None and len(cols) > 6:
-                attachment = False
-                if cols[3] != "":
-                    self.getAttachment(cols[3], cols[5])
-                    attachment = True
-                messageForView = str(cols[6]).decode('utf8') + ": " + str(cols[4]).decode('utf8') + "\n" + str(cols[2]).decode('utf8')
-                if attachment:
-                    messageForView += " @ " + cols[3]
-                self.listWidgetHistory.addItem("\n" + messageForView)
-                self.listWidgetHistory.item(self.listWidgetHistory.count() - 1).setForeground(QColor(255, 0, 0, 255))
-                self.listWidgetHistory.scrollToBottom()
-                # Stores message sinto file for archiving
-                with io.open(self.DATAPATH + "/pracovni/zpravy.txt", encoding='utf-8', mode="a") as messages:
-                    messages.write(messageForView + "\n--------------------\n")
-                # mark message as readed
-                self.markMessageAsReaded(cols[7])
+            self.listWidgetMessages.clear()
+            data = json.loads(message.decode('utf8'))
+            for message in data["messages"]:
+                if message["file"] != "":
+                    self.getAttachment(message["file"], message["shared"])
+                messageForView = message["dt_created"] + u": " + message["fromid"] + u"\n" + message["message"]
+                if message["file"] != "":
+                    messageForView += u" @ " + message["file"]
+                self.listWidgetMessages.addItem("\n" + messageForView)
+                self.listWidgetMessages.scrollToBottom()
 
         except urllib2.URLError:
             QMessageBox.information(None, "INFO:", u"Nepodařilo se spojit se serverem.")

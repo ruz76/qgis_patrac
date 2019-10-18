@@ -91,10 +91,10 @@ class Ui_Coords(QtGui.QDialog, FORM_CLASS):
         features = provider.getFeatures()
         self.layer.startEditing()
         for fet in features:
-            print self.lineEditX.text() + " " + self.lineEditY.text()
+            # print self.lineEditX.text() + " " + self.lineEditY.text()
             geom = fet.geometry()
             pt = geom.asPoint()   
-            print str(pt)
+            # print str(pt)
             fet.setGeometry(QgsGeometry.fromPoint(QgsPoint(float(self.lineEditX.text()),float(self.lineEditY.text()))))
             self.layer.commitChanges()
         self.layer.triggerRepaint()

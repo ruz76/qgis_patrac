@@ -36,6 +36,23 @@ class Ui_PatracDockWidget(object):
         self.tabGuide = QtGui.QWidget()
         self.tabWidget.addTab(self.tabGuide, QtGui.QApplication.translate("tabGuide", "Průvodce", None, QtGui.QApplication.UnicodeUTF8))
 
+        self.tabStyle = QtGui.QWidget()
+        self.tabWidget.addTab(self.tabStyle, u"Zobrazení")
+
+        self.verticalLayoutStyle = QtGui.QVBoxLayout(self.tabStyle)
+        self.verticalLayoutStyle.setObjectName(_fromUtf8("verticalLayoutStyle"))
+        self.tabStyle.setLayout(self.verticalLayoutStyle)
+        self.setUpStyles()
+
+        self.tabProgress = QtGui.QWidget()
+        self.tabWidget.addTab(self.tabProgress, u"Průběh")
+
+        self.verticalLayoutProgress = QtGui.QVBoxLayout(self.tabProgress)
+        self.verticalLayoutProgress.setObjectName(_fromUtf8("verticalLayoutProgress"))
+        self.tabProgress.setLayout(self.verticalLayoutProgress)
+        self.setUpProgress()
+
+
         self.tabExpert = QtGui.QWidget()
         self.tabWidget.addTab(self.tabExpert, "Expert")
 
@@ -155,12 +172,6 @@ class Ui_PatracDockWidget(object):
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
-        self.chkManualUpdate = QtGui.QCheckBox(self.dockWidgetContents)
-        self.chkManualUpdate.setObjectName(_fromUtf8("chkManualUpdate"))
-        self.horizontalLayout_3.addWidget(self.chkManualUpdate)
-        self.btnRefresh = QtGui.QPushButton(self.dockWidgetContents)
-        self.btnRefresh.setObjectName(_fromUtf8("btnRefresh"))
-        self.horizontalLayout_3.addWidget(self.btnRefresh)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
 
         self.horizontalLayoutToolbar_5 = QtGui.QHBoxLayout()
@@ -250,6 +261,65 @@ class Ui_PatracDockWidget(object):
         PatracDockWidget.setWidget(self.dockWidgetContents)
         self.retranslateUi(PatracDockWidget)
         QtCore.QMetaObject.connectSlotsByName(PatracDockWidget)
+
+    def setUpStyles(self):
+        self.sectorsUniqueStyle = QtGui.QPushButton(self.dockWidgetContents)
+        self.sectorsUniqueStyle.setObjectName(_fromUtf8("sectorsUniqueStyle"))
+        self.sectorsUniqueStyle.setText(u"Sektory dle typu")
+        self.verticalLayoutStyle.addWidget(self.sectorsUniqueStyle)
+
+        self.sectorsProgressStyle = QtGui.QPushButton(self.dockWidgetContents)
+        self.sectorsProgressStyle.setObjectName(_fromUtf8("sectorsProgressStyle"))
+        self.sectorsProgressStyle.setText(u"Sektory dle stavu")
+        self.verticalLayoutStyle.addWidget(self.sectorsProgressStyle)
+
+        self.sectorsUnitsStyle = QtGui.QPushButton(self.dockWidgetContents)
+        self.sectorsUnitsStyle.setObjectName(_fromUtf8("sectorsUnitsStyle"))
+        self.sectorsUnitsStyle.setText(u"Sektory dle prostředků")
+        self.verticalLayoutStyle.addWidget(self.sectorsUnitsStyle)
+
+        self.sectorsSingleStyle = QtGui.QPushButton(self.dockWidgetContents)
+        self.sectorsSingleStyle.setObjectName(_fromUtf8("sectorsSingleStyle"))
+        self.sectorsSingleStyle.setText(u"Odbarvit sektory")
+        self.verticalLayoutStyle.addWidget(self.sectorsSingleStyle)
+
+        self.sectorsLabelsOn = QtGui.QPushButton(self.dockWidgetContents)
+        self.sectorsLabelsOn.setObjectName(_fromUtf8("sectorsLabelsOn"))
+        self.sectorsLabelsOn.setText(u"Zapnout popisky sektorů")
+        self.verticalLayoutStyle.addWidget(self.sectorsLabelsOn)
+
+        self.sectorsLabelsOff = QtGui.QPushButton(self.dockWidgetContents)
+        self.sectorsLabelsOff.setObjectName(_fromUtf8("sectorsLabelsOff"))
+        self.sectorsLabelsOff.setText(u"Vypnout popisky sektorů")
+        self.verticalLayoutStyle.addWidget(self.sectorsLabelsOff)
+
+    def setUpProgress(self):
+        self.sectorsProgressStateLabel = QtGui.QLabel(self.dockWidgetContents)
+        self.sectorsProgressStateLabel.setObjectName(_fromUtf8("sectorsProgressStateLabel"))
+        self.sectorsProgressStateLabel.setText(u"Vyberte typ operace. Aktivujte nástroj. Klikněte do sektoru pro změnu stavu. Pokud chcete analyzovat propátrání, vyberte nejdříve vrstvu se stopou v seznamu vrstev.")
+        self.sectorsProgressStateLabel.setWordWrap(True)
+        self.verticalLayoutProgress.addWidget(self.sectorsProgressStateLabel)
+        self.sectorsProgressStateNotStarted = QtGui.QRadioButton(self.dockWidgetContents)
+        self.sectorsProgressStateNotStarted.setObjectName(_fromUtf8("sectorsProgressStateNotStarted"))
+        self.sectorsProgressStateNotStarted.setText(u"Pátrání nezahájeno")
+        self.verticalLayoutProgress.addWidget(self.sectorsProgressStateNotStarted)
+        self.sectorsProgressStateStarted = QtGui.QRadioButton(self.dockWidgetContents)
+        self.sectorsProgressStateStarted.setObjectName(_fromUtf8("sectorsProgressStateStarted"))
+        self.sectorsProgressStateStarted.setChecked(True)
+        self.sectorsProgressStateStarted.setText(u"Pátrání zahájeno")
+        self.verticalLayoutProgress.addWidget(self.sectorsProgressStateStarted)
+        self.sectorsProgressStateFinished = QtGui.QRadioButton(self.dockWidgetContents)
+        self.sectorsProgressStateFinished.setObjectName(_fromUtf8("sectorsProgressStateFinished"))
+        self.sectorsProgressStateFinished.setText(u"Pátrání dokončeno")
+        self.verticalLayoutProgress.addWidget(self.sectorsProgressStateFinished)
+        self.sectorsProgressAnalyzeTrack = QtGui.QRadioButton(self.dockWidgetContents)
+        self.sectorsProgressAnalyzeTrack.setObjectName(_fromUtf8("sectorsProgressStateFinished"))
+        self.sectorsProgressAnalyzeTrack.setText(u"Analýza propátrání")
+        self.verticalLayoutProgress.addWidget(self.sectorsProgressAnalyzeTrack)
+        self.sectorsProgress = QtGui.QPushButton(self.dockWidgetContents)
+        self.sectorsProgress.setObjectName(_fromUtf8("sectorsProgress"))
+        self.sectorsProgress.setText(u"Aktivovat")
+        self.verticalLayoutProgress.addWidget(self.sectorsProgress)
 
     def setGuideSteps(self):
         self.tabGuideSteps = QtGui.QTabWidget()
@@ -464,7 +534,3 @@ class Ui_PatracDockWidget(object):
             "PatracDockWidget", "Hodnoty min/max", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate(
             "PatracDockWidget", "Hodnoty max/min", None, QtGui.QApplication.UnicodeUTF8))
-        self.chkManualUpdate.setText(QtGui.QApplication.translate(
-            "PatracDockWidget", "Ruční aktualizace", None, QtGui.QApplication.UnicodeUTF8))
-        self.btnRefresh.setText(QtGui.QApplication.translate(
-            "PatracDockWidget", "Aktualizovat", None, QtGui.QApplication.UnicodeUTF8))

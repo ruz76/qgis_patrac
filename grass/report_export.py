@@ -111,12 +111,17 @@ AREASITEMS=AREAS.split('!')
 #Imports sektory_group_selected.shp to grass layer sektory_group_selected_modified (may be modified by user)
 print gscript.read_command('v.import', input=DATAPATH + '/pracovni/sektory_group_selected.shp', layer='sektory_group_selected', output='sektory_group_selected_modified', overwrite=True)
 
-#Sets number of search units to zero
-SUM_POCET_KPT = 0
-SUM_POCET_PT = 0
-SUM_POCET_VPT = 0
-SUM_POCET_PT_ALT = 0
-SUM_POCET_APT = 0
+#Sets area of areas to zero
+SUM_P1 = 0
+SUM_P2 = 0
+SUM_P3 = 0
+SUM_P4 = 0
+SUM_P5 = 0
+SUM_P6 = 0
+SUM_P7 = 0
+SUM_P8 = 0
+SUM_P9 = 0
+SUM_P10 = 0
 
 #Loops via all selected search sectors based on number of sectors
 for i in xrange(1, COUNT+1):
@@ -137,7 +142,7 @@ for i in xrange(1, COUNT+1):
 
     #ziskani reportu - procenta ploch v sektoru
     #Gets stats for landuse areas in masked region
-    REPORT=gscript.read_command('r.stats', input='landuse_type', separator='pipe', flags='pln')
+    REPORT=gscript.read_command('r.stats', input='landuse_type', separator='pipe', flags='plna')
     #Sets areas of types of areas to zero
     #TODO - vyjasnit zarazeni typu + mozna pouzit i letecke snimky - nejaká jednoduchá automaticka rizena klasifikace
     P1=0 #volny schudny bez porostu (louky, pole ) - nejsem schopen zatim z dat identifikovat, mozna dle data patrani, v zime bude pole bez porostu a louka asi taky
@@ -157,25 +162,35 @@ for i in xrange(1, COUNT+1):
     for REPORTITEM in REPORTITEMS:
         REPORTITEMVALUES = REPORTITEM.split('|')
         if REPORTITEMVALUES[0] == '1':
-            P1 = P1 + float(REPORTITEMVALUES[2].split('%')[0])
+            P1 = P1 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P1 = SUM_P1 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '2':
-            P2 = P2 + float(REPORTITEMVALUES[2].split('%')[0])
+            P2 = P2 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P2 = SUM_P2 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '3':
-            P3 = P3 + float(REPORTITEMVALUES[2].split('%')[0])
+            P3 = P3 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P3 = SUM_P3 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '4':
-            P4 = P4 + float(REPORTITEMVALUES[2].split('%')[0])
+            P4 = P4 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P4 = SUM_P4 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '5':
-            P5 = P5 + float(REPORTITEMVALUES[2].split('%')[0])
+            P5 = P5 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P5 = SUM_P5 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '6':
-            P6 = P6 + float(REPORTITEMVALUES[2].split('%')[0])
+            P6 = P6 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P6 = SUM_P6 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '7':
-            P7 = P7 + float(REPORTITEMVALUES[2].split('%')[0])
+            P7 = P7 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P7 = SUM_P7 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '8':
-            P8 = P8 + float(REPORTITEMVALUES[2].split('%')[0])
+            P8 = P8 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P8 = SUM_P8 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '9':
-            P9 = P9 + float(REPORTITEMVALUES[2].split('%')[0])
+            P9 = P9 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P9 = SUM_P9 + float(REPORTITEMVALUES[2])
         if REPORTITEMVALUES[0] == '10':
-            P10 = P10 + float(REPORTITEMVALUES[2].split('%')[0])
+            P10 = P10 + float(REPORTITEMVALUES[3].split('%')[0])
+            SUM_P10 = SUM_P10 + float(REPORTITEMVALUES[2])
 
     #Corect 100%
     if P1 > 100:
@@ -215,142 +230,179 @@ for i in xrange(1, COUNT+1):
     f.write(u"</ul>\n")
     f.write(u"</div>\n")
 
-    #Sets current number of units to zero
-    POCET_KPT = 0
-    POCET_PT = 0
-    POCET_PT_ALT = 0
-    POCET_KPT_ALT = 0
-
-    #For each type of area is counted number of necessary search units
-    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
-    POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
-    POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P1) / 30.0) #30 je plocha pro hledani jednim tymem
-
-    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P2) / 30.0) #30 je plocha pro hledani jednim tymem
-
-    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P3) / 20.0) #20 je plocha pro hledani jednim tymem
-
-    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
-    POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
-    POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
-    
-    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P5) / 20.0) #20 je plocha pro hledani jednim tymem
-
-    POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P6) / 5.0) #5 je plocha pro hledani jednim tymem
-
-    POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P7) / 15.0) #15 je plocha pro hledani jednim tymem
-
-    POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P10) / 15.0)  # 15 je plocha pro hledani jednim tymem
-
-    POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
-    POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
-    POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P8) / 15.0) #15 je plocha pro hledani jednim tymem
-
-    POCET_VPT = 0
-    if P9 > 0:
-        POCET_VPT = 1 #jeden tym pro vodni plochu
-
-    POCET_APT = 0
-    if P1 > 0 or P2 > 0:
-        POCET_APT = 1
-
-    #Writes to the report
-    f.write(u"\n<p>Nasazení <strong>"
-            + str(int(math.ceil(POCET_KPT))) + u" KPT, "
-            + str(int(math.ceil(POCET_PT))) + u" PT, "
-            + str(int(math.ceil(POCET_VPT))) + u" VPT, "
-            + str(int(math.ceil(POCET_VPT))) + u" APT</strong> "
-            + '<label class="rolldown" for ="a' + str(i) + 'nc">Podrobnosti</label>'
-            + "</p>\n");
-    f.write(u'<input id="a' + str(i) + u'nc" type = "checkbox" style = "display: none" >\n')
-    f.write(u'<div id="a' + str(i) + 'n\">\n')
-    f.write(u"<ul>")
-    if math.ceil(POCET_KPT) > 0:
-        f.write(u"<li>Vhodné nasadit " + str(int(
-            math.ceil(POCET_KPT))) + u" Kynologických pátracích týmů (KPT) k propátraní do 3 hodin</li>\n");
-        if math.ceil(POCET_KPT_ALT) > 0:
-            f.write(u"<li>Je možné nahradit " + str(int(math.ceil(POCET_KPT_ALT))) + u" KPT " + str(
-                math.ceil(POCET_PT_ALT)) + u" PT</li>\n");
-    if math.ceil(POCET_PT) > 0:
-        f.write(u"<li>Vhodné nasadit " + str(int(
-            math.ceil(POCET_PT))) + u" Pátracích týmů (PT) s dvaceti členy k propátraní do 3 hodin</li>\n");
-    if math.ceil(POCET_VPT) > 0:
-        f.write(u"<li>Vhodné nasadit " + str(int(
-            math.ceil(POCET_VPT))) + u" Vodních pátracích týmů (VPT) k propátraní do 3 hodin</li>\n");
-    if math.ceil(POCET_VPT) > 0:
-        f.write(u"<li>Vhodné nasadit " + str(int(
-            math.ceil(POCET_VPT))) + u" Vzdušný pátrací tým (APT). Helikoptéru nebo dron. Prostor obsahuje volné plochy bez porostu.</li>\n");
-    f.write(u"</ul>")
-    f.write(u"</div>")
+    # #Sets current number of units to zero
+    # POCET_KPT = 0
+    # POCET_PT = 0
+    # POCET_PT_ALT = 0
+    # POCET_KPT_ALT = 0
+    #
+    # #For each type of area is counted number of necessary search units
+    # POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
+    # POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P1) / 45.0) #45 je plocha pro hledani jednim tymem
+    # POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P1) / 30.0) #30 je plocha pro hledani jednim tymem
+    #
+    # POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P2) / 30.0) #30 je plocha pro hledani jednim tymem
+    #
+    # POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P3) / 20.0) #20 je plocha pro hledani jednim tymem
+    #
+    # POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
+    # POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
+    # POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P4) / 30.0) #30 je plocha pro hledani jednim tymem
+    #
+    # POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P5) / 20.0) #20 je plocha pro hledani jednim tymem
+    #
+    # POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P6) / 5.0) #5 je plocha pro hledani jednim tymem
+    #
+    # POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P7) / 15.0) #15 je plocha pro hledani jednim tymem
+    #
+    # POCET_PT = POCET_PT + (((float(AREASITEMS[i]) / 100.0) * P10) / 15.0)  # 15 je plocha pro hledani jednim tymem
+    #
+    # POCET_KPT = POCET_KPT + (((float(AREASITEMS[i]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
+    # POCET_KPT_ALT = POCET_KPT_ALT + (((float(AREASITEMS[i]) / 100.0) * P8) / 20.0) #20 je plocha pro hledani jednim tymem
+    # POCET_PT_ALT = POCET_PT_ALT + (((float(AREASITEMS[i]) / 100.0) * P8) / 15.0) #15 je plocha pro hledani jednim tymem
+    #
+    # POCET_VPT = 0
+    # if P9 > 0:
+    #     POCET_VPT = 1 #jeden tym pro vodni plochu
+    #
+    # POCET_APT = 0
+    # if P1 > 0 or P2 > 0:
+    #     POCET_APT = 1
+    #
+    # #Writes to the report
+    # f.write(u"\n<p>Nasazení <strong>"
+    #         + str(int(math.ceil(POCET_KPT))) + u" KPT, "
+    #         + str(int(math.ceil(POCET_PT))) + u" PT, "
+    #         + str(int(math.ceil(POCET_VPT))) + u" VPT, "
+    #         + str(int(math.ceil(POCET_VPT))) + u" APT</strong> "
+    #         + '<label class="rolldown" for ="a' + str(i) + 'nc">Podrobnosti</label>'
+    #         + "</p>\n");
+    # f.write(u'<input id="a' + str(i) + u'nc" type = "checkbox" style = "display: none" >\n')
+    # f.write(u'<div id="a' + str(i) + 'n\">\n')
+    # f.write(u"<ul>")
+    # if math.ceil(POCET_KPT) > 0:
+    #     f.write(u"<li>Vhodné nasadit " + str(int(
+    #         math.ceil(POCET_KPT))) + u" Kynologických pátracích týmů (KPT) k propátraní do 3 hodin</li>\n");
+    #     if math.ceil(POCET_KPT_ALT) > 0:
+    #         f.write(u"<li>Je možné nahradit " + str(int(math.ceil(POCET_KPT_ALT))) + u" KPT " + str(
+    #             math.ceil(POCET_PT_ALT)) + u" PT</li>\n");
+    # if math.ceil(POCET_PT) > 0:
+    #     f.write(u"<li>Vhodné nasadit " + str(int(
+    #         math.ceil(POCET_PT))) + u" Pátracích týmů (PT) s dvaceti členy k propátraní do 3 hodin</li>\n");
+    # if math.ceil(POCET_VPT) > 0:
+    #     f.write(u"<li>Vhodné nasadit " + str(int(
+    #         math.ceil(POCET_VPT))) + u" Vodních pátracích týmů (VPT) k propátraní do 3 hodin</li>\n");
+    # if math.ceil(POCET_VPT) > 0:
+    #     f.write(u"<li>Vhodné nasadit " + str(int(
+    #         math.ceil(POCET_VPT))) + u" Vzdušný pátrací tým (APT). Helikoptéru nebo dron. Prostor obsahuje volné plochy bez porostu.</li>\n");
+    # f.write(u"</ul>")
+    # f.write(u"</div>")
 
     #export do SHP s nazvem dle atributu label
     #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/', output_layer=str(VALUESITEMS[0]), output_type='line' overwrite=True)
     #Adds information from report to attribute of the layer
     #print gscript.read_command('v.db.addcolumn', map='sektory_group_selected_modified_' + str(i), columns='report varchar(255)')
     #print gscript.read_command('v.db.update', map='sektory_group_selected_modified_' + str(i), layer='1', column='report', value='KPT=' + str(math.ceil(POCET_KPT)) + ', PT='+ str(math.ceil(POCET_PT)) + ', VPT=' + str(math.ceil(POCET_VPT)) + ', APT=' + str(math.ceil(POCET_PT_ALT)))
-    funits = io.open(DATAPATH + '/pracovni/report.html.units.' + str(i), encoding='utf-8', mode='w')
-    funits.write(u'KPT=' + str(math.ceil(POCET_KPT)) + u', PT='+ str(math.ceil(POCET_PT)) + u', VPT=' + str(math.ceil(POCET_VPT)) + u', APT=' + str(math.ceil(POCET_PT_ALT)))
-    funits.close()
-    #Exports sector to the SHP
-    #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/'+str(VALUESITEMS[0])+'.shp', output_layer=str(VALUESITEMS[0]), output_type='line', overwrite=True)
-
-    #Increase the sums of number of units
-    SUM_POCET_KPT += math.ceil(POCET_KPT)
-    SUM_POCET_PT += math.ceil(POCET_PT)
-    SUM_POCET_VPT += math.ceil(POCET_VPT)
-    SUM_POCET_PT_ALT += math.ceil(POCET_KPT_ALT)
-    SUM_POCET_APT += math.ceil(POCET_APT)
+    # funits = io.open(DATAPATH + '/pracovni/report.html.units.' + str(i), encoding='utf-8', mode='w')
+    # funits.write(u'KPT=' + str(math.ceil(POCET_KPT)) + u', PT='+ str(math.ceil(POCET_PT)) + u', VPT=' + str(math.ceil(POCET_VPT)) + u', APT=' + str(math.ceil(POCET_PT_ALT)))
+    # funits.close()
+    # #Exports sector to the SHP
+    # #print gscript.read_command('v.out.ogr', input='sektory_group_selected_modified_' + str(i), output=DATAPATH +'/sektory/shp/'+str(VALUESITEMS[0])+'.shp', output_layer=str(VALUESITEMS[0]), output_type='line', overwrite=True)
+    #
+    # #Increase the sums of number of units
+    # SUM_POCET_KPT += math.ceil(POCET_KPT)
+    # SUM_POCET_PT += math.ceil(POCET_PT)
+    # SUM_POCET_VPT += math.ceil(POCET_VPT)
+    # SUM_POCET_PT_ALT += math.ceil(POCET_KPT_ALT)
+    # SUM_POCET_APT += math.ceil(POCET_APT)
 
     f.close()
 
 #Removes mask to be ready for another calculations for whole area
 print gscript.read_command('r.mask', flags="r")
 
+#Sets area to ha
+SUM_P1 = SUM_P1 / float(10000)
+SUM_P2 = SUM_P2 / float(10000)
+SUM_P3 = SUM_P3 / float(10000)
+SUM_P4 = SUM_P4 / float(10000)
+SUM_P5 = SUM_P5 / float(10000)
+SUM_P6 = SUM_P6 / float(10000)
+SUM_P7 = SUM_P7 / float(10000)
+SUM_P8 = SUM_P8 / float(10000)
+SUM_P9 = SUM_P9 / float(10000)
+SUM_P10 = SUM_P10 / float(10000)
+
 f = io.open(DATAPATH + '/pracovni/report.html.units', encoding='utf-8', mode='w')
 #Reads numbers for existing search units from units.txt
+CUR_KPT=0
+CUR_PT=0
+CUR_VPT=0
 with open(PLUGIN_PATH + "/grass/units.txt", "rb") as fileInput:
     i=0
     for row in csv.reader(fileInput, delimiter=';'):
-        j=0
         unicode_row = [x.decode('utf8') for x in row]
-        for field in unicode_row:
-            if j == 0:
-                cur_count = int(field)
-                j=j+1
-                #Dog
-                if float(SUM_POCET_KPT) > 0:
-                    if i == 0: #Pes
-                        if cur_count != 0:
-                            cur_pomer = float(SUM_POCET_KPT) / float(cur_count)
-                            f.write(u"\n<p>K dispozici je " + str(cur_count) + u" KPT</p>\n");
-                            f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
-                        else:
-                            f.write(u"\n<p>K dispozici není žádný KPT. Je nutné využít náhradu.</p>\n");
-                #Search team
-                if float(SUM_POCET_PT) > 0:
-                    if i == 1: #Rojnice
-                        if cur_count != 0:
-                            cur_pomer = float(SUM_POCET_PT) / (float(cur_count) / float(20))
-                            f.write(u"\n<p>K dispozici je " + str(cur_count) + u" lidí pro PT</p>\n");
-                            f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
-                            #TODO Dořešit SUM_POCET_PT_ALT
-                        else:
-                            f.write(u"\n<p>K dispozici není žádný člověk pro PT. Je nutné nějaké zajistit.</p>\n");
-                #Diver
-                if float(SUM_POCET_VPT) > 0:
-                    if i == 5: #Potápěč
-                        if cur_count != 0:
-                            cur_pomer = float(SUM_POCET_VPT) / (float(cur_count) / float(2))
-                            f.write(u"\n<p>K dispozici je " + str(cur_count) + u" potápěčů pro VPT</p>\n");
-                            f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
-                        else:
-                            f.write(u"\n<p>K dispozici není žádný potápěč. Je nutné nějaké zajistit.</p>\n");
-                # air (helicopter, dron)
-                if float(SUM_POCET_APT) > 0:
-                    # TODO check for helicopter - we do not have category yet
-                    if i == 0:
-                        f.write(u"\n<p>Vhodné nasadit vzdušný pátrací tým (APT). Helikoptéru nebo dron. Prostor obsahuje volné plochy bez porostu.</p>\n");
+        cur_count = int(unicode_row[0])
+        if i == 0:  # Pes
+            CUR_KPT = cur_count
+        if i == 1:  # Rpjnice
+            CUR_PT = cur_count
+        if i == 5:  # Potápěč
+            CUR_VPT = cur_count
         i=i+1
+
+f.write(u'<div id="areas" class="fixed400">\n')
+f.write(u"\n<h2>Typy povrchů</h2>\n");
+f.write(u"<ul>\n")
+f.write(u"<li>volný schůdný bez porostu: " + str(int(math.ceil(SUM_P1))) + " ha</li>\n")
+f.write(u"<li>volný schůdný s porostem: " + str(int(math.ceil(SUM_P2))) + " ha</li>\n")
+f.write(u"<li>volný obtížně schůdný: " + str(int(math.ceil(SUM_P3))) + " ha</li>\n")
+f.write(u"<li>porost lehce průchozí: " + str(int(math.ceil(SUM_P4))) + " ha</li>\n")
+f.write(u"<li>porost obtížně průchozí: " + str(int(math.ceil(SUM_P5))) + " ha</li>\n")
+f.write(u"<li>zastavěné území měst a obcí: " + str(int(math.ceil(SUM_P6))) + " ha</li>\n")
+f.write(u"<li>městské parky a hřiště s pohybem osob: " + str(int(math.ceil(SUM_P7))) + " ha</li>\n")
+f.write(u"<li>městské parky a hřiště bez osob: " + str(int(math.ceil(SUM_P8))) + " ha</li>\n")
+f.write(u"<li>vodní plocha: " + str(int(math.ceil(SUM_P9))) + " ha</li>\n")
+f.write(u"<li>ostatní plochy: " + str(int(math.ceil(SUM_P10))) + " ha</li>\n")
+f.write(u"</ul>\n")
+f.write(u"</div>\n")
+
+KPT = SUM_P2 + SUM_P3 + SUM_P5
+KPT_PT = SUM_P1 + SUM_P4 + SUM_P8
+f.write(u'<div id="teams" class="fixed400">\n')
+f.write(u"<h2>KPT</h2>\n")
+f.write(u"<p>Plocha pro pátrání vhodná pro KPT je " + str(int(math.ceil(KPT + KPT_PT))) + " ha.\n")
+f.write(u"<p>K dispozici je " + str(CUR_KPT) + " KPT.\n")
+P2_P3_P5_KPT = float(SUM_P2) / float(7) + float(SUM_P3) / float(4) + float(SUM_P5) / float(4)
+P1_P4_P8_KPT = float(SUM_P1) / float(10) + float(SUM_P4) / float(7) + float(SUM_P8) / float(5)
+if CUR_KPT > 0:
+    f.write(u"<p>Oblast propátrají přibližně za " + str(int(math.ceil((P2_P3_P5_KPT + P1_P4_P8_KPT) / float(CUR_KPT)))) + " h.\n")
+if KPT_PT > 0:
+    P1_P4_P8_PT = float(SUM_P1) / (float(7) / float(20)) + float(SUM_P4) / (float(7) / float(20)) + float(SUM_P8) / (float(5) / float(20))
+    f.write(u"<p>Součástí je prostor, kde je možno KPT nahradit PT. Jedná se o " + str(int(math.ceil(KPT_PT))) + " ha.\n")
+if (SUM_P2 + SUM_P1) > 0:
+    f.write(u"<p>Součástí je prostor vhodný pro APT (vrtulník, dron) o rozloze " + str(int(math.ceil(SUM_P2 + SUM_P1))) + " ha.\n")
+
+PT = SUM_P6 + SUM_P7 + SUM_P10
+f.write(u"<h2>PT</h2>\n")
+f.write(u"<p>Plocha pro pátrání vhodná pro PT je " + str(round(PT)) + " ha.\n")
+f.write(u"<p>K dispozici je " + str(CUR_PT) + " osob pro PT.\n")
+if CUR_PT > 0:
+    P6_P7_P10_PT = float(SUM_P6) / (float(1) / float(20)) + float(SUM_P7) / (float(5) / float(20)) + float(SUM_P10) / (float(5) / float(20))
+    f.write(u"<p>Oblast propátrají přibližně za " + str(int(math.ceil(P6_P7_P10_PT / float(CUR_PT)))) + " h.\n")
+else:
+    f.write(u"<p>Nejsou k dispozici žádné PT. Je nutné nějaké zajistit.\n")
+
+if SUM_P9 > 0:
+    f.write(u"<h2>VPT</h2>\n")
+    f.write(u"<p>Vodní plochy v oblasti mají " + str(int(math.ceil(SUM_P9))) + " ha.\n")
+    if CUR_VPT > 0:
+        #TODO count time for divers
+        A = 100 #placeholder
+    else:
+        f.write(u"<p>Nejsou k dispozici žádné VPT. Je nutné nějaké zajistit.\n")
+
+f.write(u"</div>\n")
 
 maxtime = 3
 if os.path.isfile(PLUGIN_PATH + "/grass/maxtime.txt"):
@@ -362,10 +414,54 @@ if os.path.isfile(PLUGIN_PATH + "/grass/maxtime.txt"):
 if maxtime <= 0:
     maxtime = 3
 
+f.write(u'<div id="time" class="fixed400">\n')
+f.write(u"<h2>Propátrání do stanoveného času</h2>\n")
 f.write(u"\n<p>K propátrání do " + str(int(maxtime)) + u" hodin potřebujete:</p>\n")
 f.write(u"\n<ul>\n")
-f.write(u"\n<li>" + str(int(math.ceil(float(SUM_POCET_KPT) * (float(3) / float(maxtime))))) + u" KPT</li>\n")
-f.write(u"\n<li>" + str(int(math.ceil(float(SUM_POCET_PT) * (float(3) / float(maxtime))))) + u" PT</li>\n")
-f.write(u"\n<li>Minimálně jeden VPT</li>\n")
-f.write(u"\n<li>Minimálně jeden APT</li>\n")
+f.write(u"\n<li>" + str(int(math.ceil((P2_P3_P5_KPT + P1_P4_P8_KPT) / float(maxtime)))) + u" KPT</li>\n")
+f.write(u"\n<li>" + str(int(math.ceil((P6_P7_P10_PT) / float(maxtime)))) + u" PT</li>\n")
+if SUM_P9 > 0:
+    f.write(u"\n<li>Minimálně jeden VPT</li>\n")
+if (SUM_P2 + SUM_P1) > 0:
+    f.write(u"\n<li>Minimálně jeden APT</li>\n")
 f.write(u"\n</ul>\n")
+f.write(u"</div>\n")
+
+    # for field in unicode_row:
+        #     if j == 0:
+        #         cur_count = int(field)
+        #         j=j+1
+        #         #Dog
+        #         if float(SUM_POCET_KPT) > 0:
+        #             if i == 0: #Pes
+        #                 if cur_count != 0:
+        #                     cur_pomer = float(SUM_POCET_KPT) / float(cur_count)
+        #                     f.write(u"\n<p>K dispozici je " + str(cur_count) + u" KPT</p>\n");
+        #                     f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+        #                 else:
+        #                     f.write(u"\n<p>K dispozici není žádný KPT. Je nutné využít náhradu.</p>\n");
+        #         #Search team
+        #         if float(SUM_POCET_PT) > 0:
+        #             if i == 1: #Rojnice
+        #                 if cur_count != 0:
+        #                     cur_pomer = float(SUM_POCET_PT) / (float(cur_count) / float(20))
+        #                     f.write(u"\n<p>K dispozici je " + str(cur_count) + u" lidí pro PT</p>\n");
+        #                     f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+        #                     #TODO Dořešit SUM_POCET_PT_ALT
+        #                 else:
+        #                     f.write(u"\n<p>K dispozici není žádný člověk pro PT. Je nutné nějaké zajistit.</p>\n");
+        #         #Diver
+        #         if float(SUM_POCET_VPT) > 0:
+        #             if i == 5: #Potápěč
+        #                 if cur_count != 0:
+        #                     cur_pomer = float(SUM_POCET_VPT) / (float(cur_count) / float(2))
+        #                     f.write(u"\n<p>K dispozici je " + str(cur_count) + u" potápěčů pro VPT</p>\n");
+        #                     f.write(u"\n<p>Oblast prohledají přibližně za " + str(math.ceil(cur_pomer * 3)) + u" hodin</p>\n");
+        #                 else:
+        #                     f.write(u"\n<p>K dispozici není žádný potápěč. Je nutné nějaké zajistit.</p>\n");
+        #         # air (helicopter, dron)
+        #         if float(SUM_POCET_APT) > 0:
+        #             # TODO check for helicopter - we do not have category yet
+        #             if i == 0:
+        #                 f.write(u"\n<p>Vhodné nasadit vzdušný pátrací tým (APT). Helikoptéru nebo dron. Prostor obsahuje volné plochy bez porostu.</p>\n");
+        # i=i+1

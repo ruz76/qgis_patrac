@@ -54,7 +54,7 @@ class Sectors(object):
         # Check if the project has sektory_group.shp
         if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         prjfi = QFileInfo(QgsProject.instance().fileName())
@@ -127,6 +127,12 @@ class Sectors(object):
         layer.setSubsetString(filter)
 
     def extendRegion(self):
+        # Check if the project has sektory_group_selected.shp
+        if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
+            QMessageBox.information(None, "CHYBA:",
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
+            return
+
         QgsMessageLog.logMessage("Spoustim python " + self.pluginPath + "/grass/export.py", "Patrac")
         self.widget.setCursor(Qt.WaitCursor)
 
@@ -246,7 +252,7 @@ class Sectors(object):
         # Check if the project has sektory_group_selected.shp
         if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         self.widget.setCursor(Qt.WaitCursor)
@@ -314,7 +320,7 @@ class Sectors(object):
         # Check if the project has sektory_group_selected.shp
         if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         sectorid = self.recalculateSectors(False)
@@ -399,7 +405,7 @@ class Sectors(object):
         # Check if the project has sektory_group_selected.shp
         if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         sectorid = self.recalculateSectors(False)
@@ -427,7 +433,6 @@ class Sectors(object):
         AREAS = ""
         for feature in features:
             AREAS = AREAS + "!" + str(feature['area_ha'])
-        print ("AAA", AREAS)
 
         # GRASS exports to SHP
         if sys.platform.startswith('win'):
@@ -461,18 +466,18 @@ class Sectors(object):
         self.removeExportedSectors()
 
         # Header for search time
-        f.write(u'<div id="summary" class="fixed400">\n')
-        f.write(u"\n<h2>Doba pro pátrání</h2>\n");
-        f.write(u"\n<p>Pro propátrání se počítá 3 hodiny jedním týmem</p>\n");
+        f.write(u'<div id="pdf" class="fixed400">\n')
+        # f.write(u"\n<h2>Doba pro pátrání</h2>\n");
+        # f.write(u"\n<p>Pro propátrání se počítá 3 hodiny jedním týmem</p>\n");
+        f.write(u"\n<h2>GPX a PDF pro pátrání</h2>\n");
+        # f.write(u"\n<p>Pro propátrání referenční plochy (cca 30 ha) se počítá 3 hodiny jedním týmem.</p>\n");
+        f.write(u'<p><a href="report.pdf"><img src="styles/pdf.png" alt="PDF" width="40"></a>&nbsp;<a href="gpx/all.gpx">'
+                u'<img src="styles/gpx.png" alt="GPX" width="40"></a></p>\n')
+        f.write(u'</div>\n')
 
         # Reads units report
         report_units = io.open(DATAPATH + '/pracovni/report.html.units', encoding='utf-8', mode='r').read()
         f.write(report_units)
-        f.write(u"\n<h2>GPX a PDF pro pátrání</h2>\n");
-        f.write(u"\n<p>Pro propátrání referenční plochy (cca 30 ha) se počítá 3 hodiny jedním týmem.</p>\n");
-        f.write(u'<p><a href="report.pdf"><img src="styles/pdf.png" alt="PDF" width="40"></a>&nbsp;<a href="gpx/all.gpx">'
-                u'<img src="styles/gpx.png" alt="GPX" width="40"></a></p>\n')
-        f.write(u'</div>\n')
 
         #styles
         styles = ""
@@ -513,15 +518,15 @@ class Sectors(object):
             sector.startEditing()
             fet = QgsFeature()
 
-            report_units = io.open(DATAPATH + '/pracovni/report.html.units.' + str(i), encoding='utf-8',
-                                   mode='r').read()
+            # report_units = io.open(DATAPATH + '/pracovni/report.html.units.' + str(i), encoding='utf-8',
+            #                        mode='r').read()
 
             fList = list()
             fList.append(0)
             sector.dataProvider().deleteAttributes(fList)
             sector.renameAttribute(0, 'name')
             sector.renameAttribute(1, 'desc')
-            fet.setAttributes([feature['label'], str(feature['area_ha']) + ' ha ' + report_units])
+            fet.setAttributes([feature['label'], str(feature['area_ha']) + ' ha '])
 
             polygon = feature.geometry().asPolygon()
             polygon_points_count = len(polygon[0])

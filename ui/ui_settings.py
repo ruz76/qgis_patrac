@@ -102,7 +102,11 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         self.pushButtonHds.clicked.connect(self.testHds)
         self.pushButtonUpdatePlugin.clicked.connect(self.updatePlugin)
         self.pushButtonUpdateData.clicked.connect(self.updateData)
+        self.pushButtonGetRasters.clicked.connect(self.getRasters)
         self.pushButtonGetSystemUsers.clicked.connect(self.refreshSystemUsers)
+        self.comboBoxArea.currentIndexChanged.connect(self.refreshSystemUsers)
+        self.comboBoxTime.currentIndexChanged.connect(self.refreshSystemUsers)
+        self.comboBoxStatus.currentIndexChanged.connect(self.refreshSystemUsers)
         self.pushButtonCallOnDuty.clicked.connect(self.callOnDuty)
         self.pushButtonJoinSearch.clicked.connect(self.callToJoin)
         self.pushButtonPutToSleep.clicked.connect(self.putToSleep)
@@ -112,6 +116,8 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         # set up empty sheduler
         self.pushButtonGetSystemUsersShedule.clicked.connect(self.refreshSystemUsersSetSheduler)
         self.periodic_scheduler = None
+
+        self.pushButtonShowQrCode.clicked.connect(self.showQrCode)
 
         # fill filtering combos
         self.fillCmbArea()
@@ -287,11 +293,47 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
 
     def getRegion(self):
         # TODO
-        return "KH"
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        if DATAPATH != "" and QFileInfo(DATAPATH + "/config/region.txt").exists():
+            region = open(DATAPATH + "/config/region.txt", 'r').read()
+            return region.upper()
+        else:
+            msg = u"Nemohu najít konfigurační soubor s regionem pátrání. Některé funkce nebudou dostupné."
+            QMessageBox.information(self.main.iface.mainWindow(), u"Chybný projekt", msg)
+            return "KH"
 
     def getRegionAndSurrounding(self):
-        # TODO
-        return ["KH", "PA", "ST", "US"]
+        # TODO put to file
+        kraj = self.getRegion()
+        if kraj == "US":
+            return ["US", "LB", "ST", "KA", "PL"]
+        if kraj == "ST":
+            return ["KH", "PA", "ST", "US"]
+        if kraj == "PL":
+            return ["PL", "KA", "US", "ST", "JC"]
+        if kraj == "KH":
+            return ["KH", "PA", "ST", "US"]
+        if kraj == "HP":
+            return ["HP", "ST"]
+        if kraj == "PA":
+            return ["PA", "KH", "VY", "OL", "JM"]
+        if kraj == "VY":
+            return ["VY", "JC", "ST", "JM", "PA"]
+        if kraj == "JC":
+            return ["JC", "VY", "PL", "ST", "JM"]
+        if kraj == "JM":
+            return ["JM", "VY", "JC", "ZL", "OL", "PA"]
+        if kraj == "ZL":
+            return ["ZL", "MS", "OL", "JM"]
+        if kraj == "OL":
+            return ["OL", "MS", "JM", "ZL", "PA"]
+        if kraj == "LB":
+            return ["LB", "US", "KH", "ST"]
+        if kraj == "MS":
+            return ["MS", "ZL", "OL"]
+        if kraj == "KA":
+            return ["KA", "US", "PL"]
 
     def callOnDuty(self):
         self.setStatus("callonduty", self.searchID)
@@ -423,7 +465,11 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                 cols = line.split(";")
                 j = 0
                 for col in cols:
-                    tableWidget.setItem(i, j, QtGui.QTableWidgetItem(str(col).decode('utf8')))
+                    if j == 2:
+                        col = self.getStatusName(col)
+                        tableWidget.setItem(i, j, QtGui.QTableWidgetItem(col))
+                    else:
+                        tableWidget.setItem(i, j, QtGui.QTableWidgetItem(str(col).decode('utf8')))
                     j = j + 1
                 # tableWidget.selectRow(i)
                 i = i + 1
@@ -437,19 +483,19 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
                     if self.filterSystemUserByTime(cols[5]):
                         if self.filterSystemUsersByArea(cols[4]):
                             linesFiltered.append(line)
-                        else:
-                            print("Filtered out: " + line)
-                    else:
-                        print("Filtered out: " + line)
-                else:
-                    print("Filtered out: " + line)
+                #         else:
+                #             print("Filtered out: " + line)
+                #     else:
+                #         print("Filtered out: " + line)
+                # else:
+                #     print("Filtered out: " + line)
         return linesFiltered
 
     def filterSystemUsersByStatus(self, value):
         if self.comboBoxStatus.currentIndex() == 0:
             return True
         else:
-            return self.comboBoxStatus.currentText() == value
+            return self.getStatusCode(self.comboBoxStatus.currentText()) == value
 
     def filterSystemUserByTime(self, value):
         if self.comboBoxTime.currentIndex() == 0:
@@ -458,19 +504,19 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
             allowedValues = ["60m"]
             return value in allowedValues
         if self.comboBoxTime.currentIndex() == 2:
-            allowedValues = ["60m", "2h"]
+            allowedValues = ["60m", "120m"]
             return value in allowedValues
         if self.comboBoxTime.currentIndex() == 3:
-            allowedValues = ["60m", "2h", "3h"]
+            allowedValues = ["60m", "120m", "180m"]
             return value in allowedValues
         if self.comboBoxTime.currentIndex() == 4:
-            allowedValues = ["60m", "2h", "3h", "4h"]
+            allowedValues = ["60m", "120m", "180m", "240m"]
             return value in allowedValues
         if self.comboBoxTime.currentIndex() == 5:
-            allowedValues = ["60m", "2h", "3h", "4h", "5h"]
+            allowedValues = ["60m", "120m", "180m", "240m", "300m"]
             return value in allowedValues
         if self.comboBoxTime.currentIndex() == 6:
-            allowedValues = [">5h"]
+            allowedValues = ["gt300m"]
             return value in allowedValues
 
     def filterSystemUsersByArea(self, value):
@@ -548,10 +594,40 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
 
     def fillCmbStatus(self):
         self.comboBoxStatus.addItem(u"Všichni")
-        self.comboBoxStatus.addItem("waiting")
-        self.comboBoxStatus.addItem("callonduty")
-        self.comboBoxStatus.addItem("calltocome")
-        self.comboBoxStatus.addItem("onduty")
+        self.comboBoxStatus.addItem(u"čeká")
+        self.comboBoxStatus.addItem(u"pozván")
+        self.comboBoxStatus.addItem(u"k dispozici")
+        self.comboBoxStatus.addItem(u"nemohu přijet")
+        self.comboBoxStatus.addItem(u"vyzván k příjezdu")
+        self.comboBoxStatus.addItem(u"na cestě nebo v pátrání")
+
+    def getStatusName(self, status):
+        if status == "waiting":
+            return u"čeká"
+        if status == "callonduty":
+            return u"pozván"
+        if status == "readytogo":
+            return u"k dispozici"
+        if status == "cannotarrive":
+            return u"nemohu přijet"
+        if status == "calltocome":
+            return u"vyzván k příjezdu"
+        if status == "onduty":
+            return u"na cestě nebo v pátrání"
+
+    def getStatusCode(self, status):
+        if status == u"čeká":
+            return "waiting"
+        if status == u"pozván":
+            return "callonduty"
+        if status == u"k dispozici":
+            return "readytogo"
+        if status == u"nemohu přijet":
+            return "cannotarrive"
+        if status == u"vyzván k příjezdu":
+            return "calltocome"
+        if status == u"na cestě nebo v pátrání":
+            return "onduty"
 
     def accept(self):
         """Writes settings to the appropriate files"""
@@ -634,3 +710,28 @@ class Ui_Settings(QtGui.QDialog, FORM_CLASS):
         if isinstance(strOrUnicode, unicode):
             return strOrUnicode.encode(encoding)
         return strOrUnicode
+
+    def getRasters(self):
+        self.copyRasters("128")
+        self.copyRasters("64")
+        self.copyRasters("32")
+        self.copyRasters("16")
+        self.copyRasters("8")
+        self.copyRasters("4")
+
+    def copyRasters(self, level):
+        path_to = self.lineEditZpmTo.text()
+        path_from = self.lineEditZpmFrom.text()
+        copy(path_from + level + "K/metadata.csv", path_to + "ZPM_" + level + "tis/")
+        with open(path_to + level + ".name") as fp:
+            line = fp.readline()
+            while line:
+                line = line.rstrip()
+                copy(path_from + level + "K/" + line.upper() + ".tif", path_to + "ZPM_" + level + "tis/")
+                copy(path_from + level + "K/" + line.upper() + ".wld", path_to + "ZPM_" + level + "tis/")
+                line = fp.readline()
+
+    def showQrCode(self):
+        url = "https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=" + self.searchID
+        webbrowser.open(url)
+

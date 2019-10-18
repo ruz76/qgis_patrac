@@ -60,6 +60,9 @@ class Project(object):
     def addZPMRasters(self, KRAJ_DATA_PATH, Level, Layers_Count, minscaledenominator, maxscaledenominator):
         XCENTER = self.widget.canvas.extent().center().x()
         YCENTER = self.widget.canvas.extent().center().y()
+        if not os.path.isfile(KRAJ_DATA_PATH + "/raster/ZPM_" + Level + "tis/metadata.csv"):
+            QgsMessageLog.logMessage(u"ZPM " + Level + u" se nepodařilo načíst", "Patrac")
+            return
         with open(KRAJ_DATA_PATH + "/raster/ZPM_" + Level + "tis/metadata.csv", "rb") as fileInput:
             rasters = list()
             rasters_count = 0
@@ -107,9 +110,9 @@ class Project(object):
 
     def addAllZPMRasters(self, KRAJ_DATA_PATH):
         if os.path.isfile(KRAJ_DATA_PATH + "/VERSION"):
-            self.addZPMRasters(KRAJ_DATA_PATH, "1024", 1, 1000000, 2000000)
-            self.addZPMRasters(KRAJ_DATA_PATH, "512", 1, 500000, 1000000)
-            self.addZPMRasters(KRAJ_DATA_PATH, "256", 4, 250000, 500000)
+            # self.addZPMRasters(KRAJ_DATA_PATH, "1024", 1, 1000000, 2000000)
+            # self.addZPMRasters(KRAJ_DATA_PATH, "512", 1, 500000, 1000000)
+            # self.addZPMRasters(KRAJ_DATA_PATH, "256", 4, 250000, 500000)
             self.addZPMRasters(KRAJ_DATA_PATH, "128", 2, 1250000, 250000)
             self.addZPMRasters(KRAJ_DATA_PATH, "64", 4, 60000, 1250000)
             self.addZPMRasters(KRAJ_DATA_PATH, "32", 6, 20000, 60000)

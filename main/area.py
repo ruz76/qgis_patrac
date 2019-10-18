@@ -55,7 +55,7 @@ class Area(object):
         # Check if the project has mista.shp
         if not self.Utils.checkLayer("/pracovni/mista.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu míst. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu míst. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         # Vybrana vrstva

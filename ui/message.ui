@@ -33,9 +33,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>280</y>
+     <y>420</y>
      <width>381</width>
-     <height>171</height>
+     <height>31</height>
     </rect>
    </property>
   </widget>
@@ -66,9 +66,9 @@
    <property name="geometry">
     <rect>
      <x>400</x>
-     <y>10</y>
+     <y>250</y>
      <width>551</width>
-     <height>441</height>
+     <height>201</height>
     </rect>
    </property>
   </widget>
@@ -78,7 +78,7 @@
      <x>10</x>
      <y>50</y>
      <width>381</width>
-     <height>221</height>
+     <height>361</height>
     </rect>
    </property>
   </widget>
@@ -132,6 +132,16 @@
    </property>
    <property name="text">
     <string>Vložit GPX</string>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="listWidgetMessages">
+   <property name="geometry">
+    <rect>
+     <x>400</x>
+     <y>50</y>
+     <width>551</width>
+     <height>191</height>
+    </rect>
    </property>
   </widget>
  </widget>

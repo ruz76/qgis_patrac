@@ -40,6 +40,7 @@ from ui.ui_gpx import Ui_Gpx
 from ui.ui_message import Ui_Message
 from ui.ui_coords import Ui_Coords
 from ui.ui_point_tool import PointMapTool
+from ui.ui_progress_tool import ProgressMapTool
 
 from main.printing import Printing
 from main.project import ZPM_Raster, Project
@@ -47,6 +48,7 @@ from main.area import Area
 from main.utils import Utils
 from main.sectors import Sectors
 from main.hds import Hds
+from main.styles import Styles
 
 import os, sys, subprocess, time, urllib2, math, socket
 
@@ -56,7 +58,7 @@ from datetime import datetime, timedelta
 from shutil import copy
 from time import gmtime, strftime
 
-import csv, io, webbrowser, filecmp, uuid, random
+import csv, io, webbrowser, filecmp, uuid, random, getpass
 
 #If on windows
 try:
@@ -85,10 +87,6 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         QDockWidget.__init__(self, None)
         self.setupUi(self)
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-
-        # connect signals and slots
-        self.chkManualUpdate.stateChanged.connect(self.__toggleRefresh)
-        self.btnRefresh.clicked.connect(self.updatePatrac)
 
         # Button GetArea
         self.btnGetArea.clicked.connect(self.runExpertGetArea)
@@ -121,6 +119,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.settingsdlg = Ui_Settings(self.pluginPath, self)
         self.coordsdlg = Ui_Coords()
         self.pointtool = PointMapTool(self.plugin.iface.mapCanvas())
+        self.progresstool = ProgressMapTool(self.plugin.iface.mapCanvas(), self.plugin.iface)
 
         self.setStepsConnection()
 
@@ -136,6 +135,15 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.Area = Area(self)
         self.Sectors = Sectors(self)
         self.Hds = Hds(self)
+        self.Styles = Styles(self)
+        self.sectorsUniqueStyle.clicked.connect(self.setSectorsUniqueValuesStyle)
+        self.sectorsSingleStyle.clicked.connect(self.setSectorsSingleValuesStyle)
+        self.sectorsLabelsOn.clicked.connect(self.setSectorsLabelsOn)
+        self.sectorsLabelsOff.clicked.connect(self.setSectorsLabelsOff)
+        self.sectorsProgressStyle.clicked.connect(self.setSectorsProgressStyle)
+        self.sectorsUnitsStyle.clicked.connect(self.setSectorsUnitsStyle)
+        self.sectorsProgress.clicked.connect(self.setSectorsProgress)
+
 
     def showHelp(self):
         webbrowser.open("file://" + self.pluginPath + "/doc/index.html")
@@ -146,7 +154,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
     def setStepsConnection(self):
         # Autocompleter fro search of municipalities
         self.setCompleter(self.guideMunicipalitySearch)
-        self.guideMunicipalitySearch.returnPressed.connect(self.runGuideMunicipalitySearch)
+        #self.guideMunicipalitySearch.returnPressed.connect(self.runGuideMunicipalitySearch)
 
         # Step 1 Next
         self.guideStep1Next.clicked.connect(self.runGuideMunicipalitySearch)
@@ -217,15 +225,18 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                 return i
         except (KeyError, IOError):
             QMessageBox.information(self.iface.mainWindow(), u"Chybná obec", u"Obec nebyla nalezena")
-            return i
+            return -1
         except IndexError:
-            pass
+            return -1
 
     def runExpertMunicipalitySearch(self):
         self.municipalitySearch(self.msearch)
 
     def runGuideMunicipalitySearch(self):
         municipalityindex = self.municipalitySearch(self.guideMunicipalitySearch)
+
+        if municipalityindex < 0:
+            return
 
         # generate project
         self.runCreateProjectGuide(municipalityindex)
@@ -385,27 +396,34 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.setCursor(Qt.ArrowCursor)
 
     def copyGpx(self):
+        drives = None
         if sys.platform.startswith('win'):
             drives = win32api.GetLogicalDriveStrings()
             drives = drives.split('\000')[:-1]
-            drives_gpx = []
-            for drive in drives:
-                if os.path.isdir(drive + 'Garmin/GPX'):
-                    drives_gpx.append(drive)
-            if len(drives_gpx) == 1:
-                # nice, only one GPX dir is available
-                self.copyGpxToPath(drives_gpx[0] + 'Garmin/GPX')
-            if len(drives_gpx) == 0:
-                # Not Garmin. TODO
-                QMessageBox.information(None, "INFO:", u"Nenašel jsem připojenou GPS. Soubor musite uložit jako z reportu ručně.")
-            if len(drives_gpx) > 1:
-                # We have more than one place with garmin/GPX
-                item, ok = QInputDialog.getItem(self, "select input dialog",
-                                                "list of drives", drives_gpx, 0, False)
-                if ok and item:
-                    self.copyGpxToPath(item + 'Garmin/GPX')
         else:
-            QMessageBox.information(None, "INFO:", u"Funkce není pro tento OS podporována.")
+            username = getpass.getuser()
+            drives = []
+            for dirname in os.listdir('/media/' + username + '/'):
+                drives.append('/media/' + username + '/' + dirname + '/')
+
+        drives_gpx = []
+        for drive in drives:
+            if os.path.isdir(drive + 'Garmin/GPX'):
+               drives_gpx.append(drive)
+
+        if len(drives_gpx) == 1:
+            # nice, only one GPX dir is available
+            self.copyGpxToPath(drives_gpx[0] + 'Garmin/GPX')
+
+        if len(drives_gpx) == 0:
+            # Not Garmin. TODO
+            QMessageBox.information(None, "INFO:", u"Nenašel jsem připojenou GPS. Soubor musite uložit jako z reportu ručně.")
+
+        if len(drives_gpx) > 1:
+            # We have more than one place with garmin/GPX
+            item, ok = QInputDialog.getItem(self, "select input dialog", "list of drives", drives_gpx, 0, False)
+            if ok and item:
+                self.copyGpxToPath(item + 'Garmin/GPX')
 
     def copyGpxToPath(self, path):
         prjfi = QFileInfo(QgsProject.instance().fileName())
@@ -530,7 +548,19 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             transparencyList.extend(self.generateTransparencyList(self.sliderEnd.value(), self.maxVal))
 
         # update layer transparency
-        layer = self.plugin.iface.mapCanvas().currentLayer()
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        layer = None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if DATAPATH + "/pracovni/distances_costed_cum.tif" in lyr.source():
+                layer = lyr
+                break
+
+        if layer == None:
+            QMessageBox.information(None, "CHYBA:",
+                                    u"Projekt neobsahuje vrstvu pravděpodobnosti. Zkuste prosím znovu použít krok 3 v průvodci.")
+            return
+
         layer.setCacheImage(None)
         layer.renderer().rasterTransparency().setTransparentSingleValuePixelList(transparencyList)
         layer.renderer().setOpacity(0.5)
@@ -544,8 +574,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             return
         self.spinStart.setValue(value)
 
-        if not self.chkManualUpdate.isChecked():
-            self.updatePatrac()
+        #if not self.chkManualUpdate.isChecked():
+        self.updatePatrac()
 
     def __updateSliderStart(self, value):
         endValue = self.spinEnd.value()
@@ -563,8 +593,8 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
             return
         self.spinEnd.setValue(value)
 
-        if not self.chkManualUpdate.isChecked():
-            self.updatePatrac()
+        #if not self.chkManualUpdate.isChecked():
+        self.updatePatrac()
 
     def __updateSliderEnd(self, value):
         startValue = self.sliderStart.value()
@@ -661,7 +691,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # Check if the project has sektory_group_selected.shp
         if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         prjfi = QFileInfo(QgsProject.instance().fileName())
@@ -676,7 +706,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # Check if the project has sektory_group_selected.shp
         if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         self.importgpxdlg = Ui_Gpx(self.pluginPath)
@@ -689,7 +719,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # Check if the project has sektory_group_selected.shp
         if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         prjfi = QFileInfo(QgsProject.instance().fileName())
@@ -697,6 +727,42 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         self.pointtool.setDataPath(DATAPATH)
         self.pointtool.setSearchid(self.getSearchID())
         self.plugin.iface.mapCanvas().setMapTool(self.pointtool)
+
+    def setSectorsProgress(self):
+        # Check if the project has sektory_group_selected.shp
+        if not self.Utils.checkLayer("/pracovni/sektory_group.shp"):
+            QMessageBox.information(None, "CHYBA:",
+                                    u"Projekt neobsahuje vrstvu sektorů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
+            return
+
+        layer = None
+        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
+            if self.Utils.getDataPath() + "/pracovni/sektory_group.shp" in lyr.source():
+                layer = lyr
+                break
+
+        prjfi = QFileInfo(QgsProject.instance().fileName())
+        DATAPATH = prjfi.absolutePath()
+        self.progresstool.setDataPath(DATAPATH)
+        self.progresstool.setPluginPath(self.pluginPath)
+        attribute = 3
+        type = 1
+        if self.sectorsProgressStateNotStarted.isChecked() == True:
+            attribute = 3
+            type = 0
+        if self.sectorsProgressStateStarted.isChecked() == True:
+            attribute = 3
+            type = 1
+        if self.sectorsProgressStateFinished.isChecked() == True:
+            attribute = 3
+            type = 2
+        if self.sectorsProgressAnalyzeTrack.isChecked() == True:
+            attribute = -1
+            type = 0
+        self.progresstool.setAttribute(attribute)
+        self.progresstool.setType(type)
+        self.progresstool.setLayer(layer)
+        self.plugin.iface.mapCanvas().setMapTool(self.progresstool)
 
     def definePlaces(self):
         """Moves the selected point to specified coordinates
@@ -706,7 +772,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # Check if the project has mista.shp
         if not self.Utils.checkLayer("/pracovni/mista.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu míst. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu míst. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         # Get center of the map
@@ -751,7 +817,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         DATAPATH = prjfi.absolutePath()
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/mista.shp":
+            if DATAPATH + "/pracovni/mista.shp" in lyr.source():
                 layer = lyr
                 break
         # If we would like to switch to all features
@@ -883,12 +949,22 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         searchid = open(DATAPATH + '/config/searchid.txt', 'r').read()
         return searchid
 
+    def addFeaturePolyLineFromPoints(self, points, cols, provider):
+        fet = QgsFeature()
+        # Name and sessionid are on first and second place
+        fet.setAttributes([str(cols[0]), str(cols[1]), str(cols[2]), str(cols[3]).decode('utf8')])
+        # Geometry is on third and fourth places
+        if len(points) > 1:
+            line = QgsGeometry.fromPolyline(points)
+            fet.setGeometry(line)
+            provider.addFeatures([fet])
+
     def showPeopleTracks(self):
         """Shows tracks of logged positions in map"""
         # Check if the project has patraci_lines.shp
         if not self.Utils.checkLayer("/pracovni/patraci_lines.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu pátračů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu pátračů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         self.setCursor(Qt.WaitCursor)
@@ -896,7 +972,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         DATAPATH = prjfi.absolutePath()
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/patraci_lines.shp":
+            if DATAPATH + "/pracovni/patraci_lines.shp" in lyr.source():
                 layer = lyr
                 break
         provider = layer.dataProvider()
@@ -924,10 +1000,6 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                     # Splits based on semicolon
                     # TODO - add time
                     cols = line.split(";")
-                    fet = QgsFeature()
-                    # Name and sessionid are on first and second place
-                    fet.setAttributes([str(cols[0]), str(cols[1]), str(cols[2]), str(cols[3]).decode('utf8')])
-                    # Geometry is on third and fourth places
                     points = []
                     position = 0
                     # print "COLS: " + str(len(cols))
@@ -938,14 +1010,10 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
                                 point = QgsPoint(float(xy[0]), float(xy[1]))
                                 points.append(point)
                             except:
-                                QgsMessageLog.logMessage(u"Problém s načtením dat z databáze: " + line, "Patrac")
+                                QgsMessageLog.logMessage(u"Problém s načtením dat z databáze: " + line.decode('utf8'), "Patrac")
                                 pass
                         position = position + 1
-                    if len(points) > 1:
-                        line = QgsGeometry.fromPolyline(points)
-                        fet.setGeometry(line)
-                        print(line.length())
-                        provider.addFeatures([fet])
+                    self.addFeaturePolyLineFromPoints(points, cols, provider)
             layer.commitChanges()
             layer.triggerRepaint()
         except urllib2.URLError as e:
@@ -960,7 +1028,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # Check if the project has patraci.shp
         if not self.Utils.checkLayer("/pracovni/patraci.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu pátračů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu pátračů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         self.setCursor(Qt.WaitCursor)
@@ -968,7 +1036,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         DATAPATH = prjfi.absolutePath()
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/patraci.shp":
+            if DATAPATH + "/pracovni/patraci.shp" in lyr.source():
                 layer = lyr
                 break
         provider = layer.dataProvider()
@@ -1019,7 +1087,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         # Check if the project has patraci.shp
         if not self.Utils.checkLayer("/pracovni/patraci.shp"):
             QMessageBox.information(None, "CHYBA:",
-                                    u"Projekt neobsahuje vrstvu pátračů. Otevřete správný projekt, nebo vygenerujte nový z projektu simple.")
+                                    u"Projekt neobsahuje vrstvu pátračů. Otevřete správný projekt, nebo vygenerujte nový pomocí průvodce.")
             return
 
         self.setCursor(Qt.WaitCursor)
@@ -1027,7 +1095,7 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
         DATAPATH = prjfi.absolutePath()
         layer = None
         for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == DATAPATH + "/pracovni/patraci.shp":
+            if DATAPATH + "/pracovni/patraci.shp" in lyr.source():
                 layer = lyr
                 break
         provider = layer.dataProvider()
@@ -1057,3 +1125,22 @@ class PatracDockWidget(QDockWidget, Ui_PatracDockWidget, object):
 
     def testHds(self):
         self.Hds.testHds()
+
+    def setSectorsUniqueValuesStyle(self):
+        self.Styles.setSectorsStyle('unique')
+
+    def setSectorsSingleValuesStyle(self):
+        self.Styles.setSectorsStyle('single')
+
+    def setSectorsLabelsOn(self):
+        self.Styles.setSectorsStyle('single')
+
+    def setSectorsLabelsOff(self):
+        self.Styles.setSectorsStyle('single_no_labels')
+
+    def setSectorsProgressStyle(self):
+        self.Styles.setSectorsStyle('stav')
+
+    def setSectorsUnitsStyle(self):
+        QMessageBox.information(None, "INFO:",
+                                u"Funkce není implementována.")
